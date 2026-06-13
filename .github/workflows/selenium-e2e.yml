@@ -51,12 +51,12 @@ jobs:
       - name: Install Backend Server Dependencies
         run: |
           cd smart_press_backend
-          npm ci
+          npm install
 
       - name: Install Selenium Test Dependencies
         run: |
           cd smart_press_selenium
-          npm ci
+          npm install
 
       - name: Run E2E Tests
         run: |

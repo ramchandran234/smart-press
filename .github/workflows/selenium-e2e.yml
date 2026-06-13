@@ -68,7 +68,13 @@ jobs:
         run: |
           cd smart_press_selenium
           if [ -f "reports/E2E_Web_Test_Report.xlsx" ]; then
+            if [ ! -d "node_modules" ]; then
+              echo "node_modules directory is missing. Installing dependencies..."
+              npm ci
+            fi
             node convert-report.js reports/E2E_Web_Test_Report.xlsx reports/E2E_Web_Test_Report.html
+          else
+            echo "E2E_Web_Test_Report.xlsx not found. Skipping HTML report generation."
           fi
 
       - name: Upload Test Reports
@@ -81,4 +87,3 @@ jobs:
             smart_press_selenium/reports/E2E_Web_Test_Report.html
           if-no-files-found: warn
           retention-days: 14
-

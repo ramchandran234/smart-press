@@ -1,0 +1,21 @@
+{
+  "name": "smart-press-selenium-tests",
+  "version": "1.0.0",
+  "description": "Selenium Web E2E Automation tests for Smart Press Website with Excel Reporting",
+  "main": "index.js",
+  "scripts": {
+    "test": "wdio run wdio.conf.js",
+    "build:web": "cd ../smart_press && flutter build web",
+    "serve:web": "npx -y serve -s ../smart_press/build/web -l 8080"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0"
+  },
+  "devDependencies": {
+    "@wdio/cli": "^8.40.6",
+    "@wdio/local-runner": "^8.40.6",
+    "@wdio/mocha-framework": "^8.40.2",
+    "@wdio/spec-reporter": "^8.39.0",
+    "webdriverio": "^8.40.6"
+  }
+}

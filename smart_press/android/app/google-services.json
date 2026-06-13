@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "235931425275",
+    "project_id": "smart-press-674b2",
+    "storage_bucket": "smart-press-674b2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:235931425275:android:74d1d3d254a1d310fa135e",
+        "android_client_info": {
+          "package_name": "com.example.smart_press"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCiGbNVZF1Hv4ISMQ3mI7YAlTLZAcZ7Wx8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

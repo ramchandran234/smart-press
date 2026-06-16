@@ -10,7 +10,6 @@ from selenium.common.exceptions import TimeoutException
 
 TARGET_URL = "https://smart-press-website.onrender.com"
 
-
 @pytest.fixture(scope="module")
 def driver():
     """
@@ -58,15 +57,37 @@ def driver():
     yield driver
     driver.quit()
 
+def enable_accessibility(driver):
+    """
+    Finds and clicks the flt-semantics-placeholder element to instruct
+    the Flutter web engine to render the HTML accessibility DOM tree.
+    """
+    try:
+        # Wait for placeholder to be present
+        placeholder = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.TAG_NAME, "flt-semantics-placeholder"))
+        )
+        print("Clicking flt-semantics-placeholder using JS to activate the accessibility tree...")
+        # A JS click bypasses visibility limits of the 1x1 placeholder
+        driver.execute_script("arguments[0].click();", placeholder)
+        
+        # Wait up to 10 seconds until at least one flt-semantics element is rendered in the DOM
+        WebDriverWait(driver, 10).until(
+            lambda d: len(d.find_elements(By.TAG_NAME, "flt-semantics")) > 0
+        )
+        print("Accessibility tree populated successfully!")
+    except Exception as e:
+        print(f"Accessibility tree activation failed or was not required: {e}")
+
 def test_homepage_loads_successfully(driver):
     """
     Test 1: Verify the website loads successfully with accessibility enabled,
     and the title matches the application name 'smart_press'.
     """
     driver.get(f"{TARGET_URL}/?enable-accessibility=true")
+    enable_accessibility(driver)
     
     # Wait for the page title to change from empty to the app name (smart_press)
-    # Flutter web apps load a shell and then render the main script.
     WebDriverWait(driver, 20).until(
         lambda d: d.title != "" and "smart_press" in d.title.lower()
     )
@@ -82,6 +103,7 @@ def test_owner_login_button_present(driver):
     along with text fallback is the most robust way to find buttons.
     """
     driver.get(f"{TARGET_URL}/?enable-accessibility=true")
+    enable_accessibility(driver)
     
     # Try multiple selectors in sequence (case variations, tag types, and aria-labels)
     # This covers emoji text, semantic structures, and fallback elements
@@ -125,11 +147,7 @@ def test_url_structure_and_params(driver):
     and check if accessibility param or standard Flutter URL path works.
     """
     driver.get(f"{TARGET_URL}/?enable-accessibility=true")
-    
-    # Wait for the body tag to render
-    WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.TAG_NAME, "body"))
-    )
+    enable_accessibility(driver)
     
     current_url = driver.current_url
     print(f"Loaded Page URL: {current_url}")

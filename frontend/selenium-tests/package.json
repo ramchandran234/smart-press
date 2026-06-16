@@ -1,0 +1,15 @@
+{
+  "name": "smart-press-selenium-tests",
+  "version": "1.0.0",
+  "description": "Selenium Web E2E Mocha Tests for Smart Press",
+  "main": "index.js",
+  "scripts": {
+    "login": "mocha tests/login.test.js --timeout 60000 --reporter mocha-multi-reporters --reporter-options configFile=mocha-reporter-config.json"
+  },
+  "devDependencies": {
+    "mocha": "^10.4.0",
+    "mocha-junit-reporter": "^2.2.1",
+    "mocha-multi-reporters": "^1.5.1",
+    "selenium-webdriver": "^4.22.0"
+  }
+}

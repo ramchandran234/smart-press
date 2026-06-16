@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="Mocha Tests" time="5.296" tests="1" failures="0">
+  <testsuite name="Root Suite" timestamp="2026-06-16T13:49:50" tests="0" time="0.000" failures="0">
+  </testsuite>
+  <testsuite name="Smart Press - Login E2E Tests" timestamp="2026-06-16T13:49:50" tests="1" file="C:\Users\ramch\OneDrive\Desktop\Smart-press\frontend\selenium-tests\tests\login.test.js" time="5.293" failures="0">
+    <testcase name="Smart Press - Login E2E Tests should log in successfully and redirect to dashboard" time="1.368" classname="should log in successfully and redirect to dashboard">
+    </testcase>
+  </testsuite>
+</testsuites>

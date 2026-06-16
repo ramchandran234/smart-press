@@ -28,8 +28,8 @@ describe('Smart Press - Login E2E Tests', function () {
   });
 
   it('should log in successfully and redirect to dashboard', async function () {
-    // Navigate to local or live URL (defaulting to the live GitHub Pages URL)
-    const targetUrl = process.env.TARGET_URL || 'https://ramchandran234.github.io/smart-press/#/login';
+    // Navigate to local or live URL (defaulting to the live Render website)
+    const targetUrl = process.env.TARGET_URL || 'https://smart-press-website.onrender.com/#/login';
     console.log(`Navigating to target URL: ${targetUrl}`);
     await driver.get(targetUrl);
 

@@ -14,6 +14,7 @@ describe('Smart Press Web - Order Management E2E Flow', () => {
     it('should configure order items and instructions', async () => {
         console.log('Step 3: Click "Add Item" button');
         const addItemBtn = await $('//*[contains(text(), "Add Item")] | //flt-semantics[contains(@aria-label, "Add Item")]');
+        await addItemBtn.waitForDisplayed({ timeout: 10000 });
         await addItemBtn.click();
 
         console.log('Step 4: Select Saree garment');
@@ -28,7 +29,8 @@ describe('Smart Press Web - Order Management E2E Flow', () => {
 
     it('should submit the order and check confirmation', async () => {
         console.log('Step 6: Click "Save Order" button');
-        const saveBtn = await $('//button[contains(., "Save Order")] | //flt-semantics[contains(@aria-label, "Save Order & Print QR")]');
+        const saveBtn = await $('//*[contains(text(), "Save Order")] | //flt-semantics[contains(@aria-label, "Save Order & Print QR")]');
+        await saveBtn.waitForDisplayed({ timeout: 10000 });
         await saveBtn.click();
 
         console.log('Step 7: Confirm order created successfully message');

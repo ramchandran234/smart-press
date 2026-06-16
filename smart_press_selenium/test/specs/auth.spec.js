@@ -20,7 +20,8 @@ describe('Smart Press Web - Authentication E2E Flow', () => {
 
         // 4. Submit mobile number
         console.log('Step 4: Click "Send OTP" button');
-        const sendOtpBtn = await $('//button[contains(., "Send OTP")] | //flt-semantics[contains(@aria-label, "Send OTP")]');
+        const sendOtpBtn = await $('//*[contains(text(), "Send OTP")] | //flt-semantics[contains(@aria-label, "Send OTP")]');
+        await sendOtpBtn.waitForDisplayed({ timeout: 10000 });
         await sendOtpBtn.click();
     });
 
@@ -44,7 +45,8 @@ describe('Smart Press Web - Authentication E2E Flow', () => {
 
         // 7. Verify & navigate
         console.log('Step 7: Tap "Verify & Continue"');
-        const verifyBtn = await $('//button[contains(., "Verify")] | //flt-semantics[contains(@aria-label, "Verify & Continue")]');
+        const verifyBtn = await $('//*[contains(text(), "Verify")] | //flt-semantics[contains(@aria-label, "Verify & Continue")]');
+        await verifyBtn.waitForDisplayed({ timeout: 10000 });
         await verifyBtn.click();
 
         // 8. Confirm we load the Dashboard

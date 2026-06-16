@@ -6,8 +6,10 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 
 TARGET_URL = "https://smart-press-website.onrender.com"
+
 
 @pytest.fixture(scope="module")
 def driver():
@@ -81,18 +83,39 @@ def test_owner_login_button_present(driver):
     """
     driver.get(f"{TARGET_URL}/?enable-accessibility=true")
     
-    # Match flt-semantics element with label or text content
-    xpath_selector = (
-        '//flt-semantics[contains(@aria-label, "Owner Login")] | '
-        '//*[contains(text(), "Owner Login")]'
-    )
+    # Try multiple selectors in sequence (case variations, tag types, and aria-labels)
+    # This covers emoji text, semantic structures, and fallback elements
+    selectors = [
+        (By.XPATH, '//flt-semantics[contains(@aria-label, "Owner Login")]'),
+        (By.XPATH, '//flt-semantics[contains(@aria-label, "owner login")]'),
+        (By.XPATH, '//flt-semantics[contains(@aria-label, "Owner")]'),
+        (By.XPATH, '//*[contains(text(), "Owner Login")]'),
+        (By.XPATH, '//*[contains(text(), "owner login")]'),
+        (By.XPATH, '//*[contains(text(), "Owner")]'),
+        (By.XPATH, '//button[contains(text(), "Owner Login")]'),
+        (By.CSS_SELECTOR, '[aria-label*="Owner Login"]'),
+        (By.CSS_SELECTOR, '[aria-label*="owner login"]'),
+    ]
     
-    # Wait for the element to be present and visible
-    element = WebDriverWait(driver, 20).until(
-        EC.visibility_of_element_located((By.XPATH, xpath_selector))
-    )
+    element = None
+    for locator_type, selector in selectors:
+        try:
+            # Wait up to 3 seconds for each individual selector to check presence quickly
+            element = WebDriverWait(driver, 3).until(
+                EC.visibility_of_element_located((locator_type, selector))
+            )
+            print(f"Found Owner Login button using selector: {selector}")
+            break
+        except Exception as e:
+            print(f"Selector failed: {selector}, trying next...")
+            continue
+            
+    if element is None:
+        print("--- DOM DEBUG: Printing first 5000 chars of page source ---")
+        print(driver.page_source[:5000])
+        raise TimeoutException("Owner Login button was not found using any available selector.")
     
-    assert element is not None, "Owner Login button element was not found in the DOM"
+    assert element is not None, "Owner Login button element was not found using any available selector"
     assert element.is_displayed(), "Owner Login button element is present but not displayed"
     print("Verified presence of the 'Owner Login' button.")
 

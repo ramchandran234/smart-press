@@ -59,10 +59,13 @@ jobs:
         env:
           PYTHONPATH: .
 
-      - name: Upload HTML Test Report Artifact
+      - name: Upload E2E Test Reports (HTML & Excel)
         uses: actions/upload-artifact@v4
-        if: always()  # Upload report even if the test execution fails
+        if: always()  # Upload reports even if test execution fails
         with:
-          name: selenium-test-report
-          path: report.html
+          name: selenium-test-reports
+          path: |
+            report.html
+            reports/E2E_Web_Test_Report.xlsx
+          if-no-files-found: warn
           retention-days: 30

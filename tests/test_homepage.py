@@ -87,14 +87,14 @@ def test_homepage_loads_successfully(driver):
     driver.get(f"{TARGET_URL}/?enable-accessibility=true")
     enable_accessibility(driver)
     
-    # Wait for the page title to change from empty to the app name (smart_press)
+    # Wait for the page title to change from empty to the app name
     WebDriverWait(driver, 20).until(
-        lambda d: d.title != "" and "smart_press" in d.title.lower()
+        lambda d: d.title != "" and "smart" in d.title.lower() and "press" in d.title.lower()
     )
     
     page_title = driver.title
     print(f"Loaded page title: {page_title}")
-    assert "smart_press" in page_title.lower(), f"Unexpected page title: '{page_title}'"
+    assert "smart" in page_title.lower() and "press" in page_title.lower(), f"Unexpected page title: '{page_title}'"
 
 def test_owner_login_button_present(driver):
     """

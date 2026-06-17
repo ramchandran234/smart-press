@@ -51,7 +51,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     environment:
-      name: github-pages
+      name: Render-Production
       url: https://smart-press-website.onrender.com
     steps:
       - name: Deploy to GitHub Pages

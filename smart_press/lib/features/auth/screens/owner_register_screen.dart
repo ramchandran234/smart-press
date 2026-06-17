@@ -53,14 +53,17 @@ class _OwnerRegisterScreenState extends State<OwnerRegisterScreen> {
             ),
             const SizedBox(height: 24),
             const AppTextField(
+                key: Key('reg_fullname'),
                 label: 'Full Name',
                 hint: 'Enter your full name'),
             const SizedBox(height: 16),
             const AppTextField(
+                key: Key('reg_shopname'),
                 label: 'Shop Name',
                 hint: 'Enter your shop name'),
             const SizedBox(height: 16),
             const AppTextField(
+              key: Key('reg_mobile'),
               label: 'Mobile Number',
               hint: '+91 XXXXXXXXXX',
               keyboardType: TextInputType.phone,
@@ -73,6 +76,7 @@ class _OwnerRegisterScreenState extends State<OwnerRegisterScreen> {
             ),
             const SizedBox(height: 16),
             const AppTextField(
+              key: Key('reg_password'),
               label: 'Password',
               hint: '••••••••',
               obscure: true,
@@ -103,6 +107,7 @@ class _OwnerRegisterScreenState extends State<OwnerRegisterScreen> {
             ),
             const SizedBox(height: 24),
             AppButton(
+              key: const Key('reg_submit_btn'),
               label: 'Register & Continue',
               onTap: () => context.push('/verify'),
             ),

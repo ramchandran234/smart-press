@@ -1,0 +1,79 @@
+name: Flutter Web CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "flutter-pages"
+  cancel-in-progress: false
+
+jobs:
+  analyze-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Print Flutter Version
+        run: flutter --version
+
+      - name: Install Dependencies
+        run: |
+          cd smart_press
+          flutter pub get
+
+      - name: Analyze Code
+        run: |
+          cd smart_press
+          flutter analyze
+
+      - name: Run Unit & Widget Tests
+        run: |
+          cd smart_press
+          flutter test
+
+      - name: Run Integration Tests
+        run: |
+          cd smart_press
+          flutter test integration_test/app_test.dart
+
+      - name: Build Web App (Release)
+        run: |
+          cd smart_press
+          flutter build web --release --base-href "/smart-press/"
+
+      - name: Upload Build Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './smart_press/build/web'
+
+  deploy:
+    needs: analyze-and-test
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: https://ramchandran234.github.io/smart-press/
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

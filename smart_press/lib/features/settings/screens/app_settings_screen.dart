@@ -206,6 +206,7 @@ class _AppSettingsScreenState
                 width: double.infinity,
                 height: 48,
                 child: OutlinedButton.icon(
+                  key: const Key('settings_logout_btn'),
                   onPressed: () => context.go('/'),
                   icon: const Icon(Icons.logout,
                       color: AppColors.red),

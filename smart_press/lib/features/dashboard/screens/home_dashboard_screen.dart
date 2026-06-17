@@ -28,6 +28,7 @@ class HomeDashboardScreen extends StatelessWidget {
               icon: const Icon(Icons.qr_code_scanner),
               onPressed: () => context.push('/qr-scanner')),
           IconButton(
+              key: const Key('dashboard_settings_btn'),
               icon: const Icon(Icons.settings_outlined),
               onPressed: () => context.push('/settings')),
         ],
@@ -122,7 +123,7 @@ class HomeDashboardScreen extends StatelessWidget {
               mainAxisSpacing: 10,
               children: [
                 _actionTile(context, Icons.add_circle_outline,
-                    'New Order', AppColors.accent, '/orders/new'),
+                    'New Order', AppColors.accent, '/orders/new', key: const Key('qa_new_order')),
                 _actionTile(context, Icons.local_shipping,
                     'Pickups', AppColors.orange, '/pickups'),
                 _actionTile(context, Icons.delivery_dining,
@@ -210,8 +211,9 @@ class HomeDashboardScreen extends StatelessWidget {
   }
 
   Widget _actionTile(BuildContext context, IconData icon,
-      String label, Color color, String route) {
+      String label, Color color, String route, {Key? key}) {
     return GestureDetector(
+      key: key,
       onTap: () => context.push(route),
       child: Container(
         decoration: BoxDecoration(

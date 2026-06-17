@@ -60,6 +60,7 @@ class WelcomeScreen extends StatelessWidget {
               _sectionLabel('FOR SHOP OWNERS'),
               const SizedBox(height: 10),
               AppButton(
+                key: const Key('owner_login_btn'),
                 label: '🏪  Owner Login',
                 onTap: () =>
                     context.push('/otp?role=owner'),
@@ -67,6 +68,7 @@ class WelcomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               AppButton(
+                key: const Key('owner_register_btn'),
                 label: '📝  New Owner Registration',
                 onTap: () => context.push('/register'),
                 color: AppColors.accent2,
@@ -98,6 +100,7 @@ class WelcomeScreen extends StatelessWidget {
               _sectionLabel('FOR CUSTOMERS'),
               const SizedBox(height: 10),
               AppButton(
+                key: const Key('customer_login_btn'),
                 label: '👤  Customer Login',
                 onTap: () => context
                     .push('/otp?role=customer'),
@@ -105,6 +108,7 @@ class WelcomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               AppButton(
+                key: const Key('customer_register_btn'),
                 label: '✨  New Customer Registration',
                 onTap: () =>
                     context.push('/customer-register'),

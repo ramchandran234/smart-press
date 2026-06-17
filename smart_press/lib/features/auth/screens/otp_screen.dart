@@ -316,6 +316,7 @@ class _OtpScreenState extends State<OtpScreen> {
             ),
             const SizedBox(height: 8),
             TextField(
+              key: const Key('mobile_field'),
               controller: _mobileController,
               keyboardType: TextInputType.phone,
               enabled: !_otpSent,
@@ -367,6 +368,7 @@ class _OtpScreenState extends State<OtpScreen> {
               _loading
                   ? CircularProgressIndicator(color: color)
                   : AppButton(
+                      key: const Key('send_otp_btn'),
                       label: 'Send OTP 📨',
                       color: color,
                       onTap: _sendOtp,
@@ -460,6 +462,7 @@ class _OtpScreenState extends State<OtpScreen> {
               _loading
                   ? CircularProgressIndicator(color: color)
                   : AppButton(
+                      key: const Key('verify_otp_btn'),
                       label: 'Verify & Continue ✅',
                       color: color,
                       onTap: _verifyOtp,
@@ -477,6 +480,7 @@ class _OtpScreenState extends State<OtpScreen> {
       width: 46,
       height: 56,
       child: TextField(
+        key: Key('otp_digit_$index'),
         controller: _otpControllers[index],
         focusNode: _focusNodes[index],
         textAlign: TextAlign.center,

@@ -17,9 +17,17 @@ def pytest_runtest_makereport(item, call):
     
     # Capture results during the actual 'call' phase of a test
     if rep.when == "call" or (rep.when == "setup" and rep.failed):
-        suite_name = item.parent.name if item.parent else "Landing Page Suite"
-        # Use docstring as description if available, otherwise fallback to function name
-        step_name = item.obj.__doc__.strip() if item.obj.__doc__ else item.name
+        if hasattr(item, "custom_suite_name"):
+            suite_name = item.custom_suite_name
+        else:
+            suite_name = item.parent.name if item.parent else "Landing Page Suite"
+
+        if hasattr(item, "custom_step_name"):
+            step_name = item.custom_step_name
+        elif item.obj.__doc__:
+            step_name = item.obj.__doc__.strip()
+        else:
+            step_name = item.name
         # Clean whitespaces
         step_name = " ".join(step_name.split())
         

@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/http_helper.dart';
 
 class NearbyVendorsScreen extends StatefulWidget {
   const NearbyVendorsScreen({super.key});
@@ -17,78 +18,62 @@ class _NearbyVendorsScreenState
   final _filters = ['All', 'Open Now', 'Top Rated', 'Nearest'];
   String _search = '';
 
-  final _vendors = [
-    {
-      'id': 'V001',
-      'name': 'Smart Press',
-      'area': 'Koramangala',
-      'distance': '0.3 km',
-      'rating': 4.8,
-      'reviews': 124,
-      'open': true,
-      'services': ['Wash', 'Iron', 'Dry Clean'],
-      'minOrder': '₹100',
-      'time': '24 hrs',
-      'initial': 'S',
-      'color': AppColors.accent,
-    },
-    {
-      'id': 'V002',
-      'name': 'Fresh Laundry',
-      'area': 'Indiranagar',
-      'distance': '1.2 km',
-      'rating': 4.5,
-      'reviews': 89,
-      'open': true,
-      'services': ['Wash', 'Iron'],
-      'minOrder': '₹80',
-      'time': '48 hrs',
-      'initial': 'F',
-      'color': AppColors.green,
-    },
-    {
-      'id': 'V003',
-      'name': 'Quick Clean',
-      'area': 'HSR Layout',
-      'distance': '2.1 km',
-      'rating': 4.2,
-      'reviews': 56,
-      'open': false,
-      'services': ['Iron Only'],
-      'minOrder': '₹50',
-      'time': '12 hrs',
-      'initial': 'Q',
-      'color': AppColors.orange,
-    },
-    {
-      'id': 'V004',
-      'name': 'Royal Wash',
-      'area': 'BTM Layout',
-      'distance': '2.8 km',
-      'rating': 4.6,
-      'reviews': 201,
-      'open': true,
-      'services': ['Wash', 'Iron', 'Dry Clean'],
-      'minOrder': '₹150',
-      'time': '36 hrs',
-      'initial': 'R',
-      'color': AppColors.accent2,
-    },
-    {
-      'id': 'V005',
-      'name': 'Clean Zone',
-      'area': 'Jayanagar',
-      'distance': '3.4 km',
-      'rating': 4.3,
-      'reviews': 78,
-      'open': true,
-      'services': ['Wash', 'Dry Clean'],
-      'minOrder': '₹120',
-      'time': '24 hrs',
-      'initial': 'C',
-      'color': AppColors.gold,
-    },
-  ];
+  List<dynamic> _vendors = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchVendors();
+  }
+
+  Future<void> _fetchVendors() async {
+    try {
+      final res = await HttpHelper.get('/auth/vendors');
+      if (res['success'] == true) {
+        final rawVendors = res['vendors'] as List<dynamic>;
+        final mapped = <Map<String, dynamic>>[];
+        for (int i = 0; i < rawVendors.length; i++) {
+          final rv = rawVendors[i] as Map<String, dynamic>;
+          final name = rv['shopName'] as String? ?? rv['name'] as String? ?? 'Laundry Shop';
+          final initial = name.isNotEmpty ? name[0].toUpperCase() : 'L';
+          
+          final color = [
+            AppColors.accent,
+            AppColors.green,
+            AppColors.orange,
+            AppColors.accent2,
+            AppColors.gold
+          ][i % 5];
+          
+          mapped.add({
+            '_id': rv['_id'],
+            'name': name,
+            'area': rv['address'] as String? ?? 'Koramangala',
+            'distance': '${0.3 + (i * 0.4)} km',
+            'rating': 4.5 + (i % 5) * 0.1,
+            'reviews': 50 + (i * 12),
+            'open': true,
+            'services': ['Wash', 'Iron', 'Dry Clean'],
+            'minOrder': '₹100',
+            'time': '24 hrs',
+            'initial': initial,
+            'color': color,
+          });
+        }
+        if (mounted) {
+          setState(() {
+            _vendors = mapped;
+            _loading = false;
+          });
+        }
+      } else {
+        if (mounted) setState(() => _loading = false);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   List<Map<String, dynamic>> get _filtered {
     return _vendors.where((v) {
@@ -274,7 +259,7 @@ class _NearbyVendorsScreenState
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: open
-            ? () => context.push('/customer/vendor-order')
+            ? () => context.push('/customer/vendor-order?vendorId=${v['_id']}')
             : null,
         child: Padding(
           padding: const EdgeInsets.all(14),
@@ -471,7 +456,7 @@ class _NearbyVendorsScreenState
                       flex: 2,
                       child: ElevatedButton.icon(
                         onPressed: () => context.push(
-                            '/customer/vendor-order'),
+                            '/customer/vendor-order?vendorId=${v['_id']}'),
                         icon: const Icon(
                             Icons.shopping_bag_outlined,
                             size: 16),

@@ -35,14 +35,13 @@ const invoiceSchema = new mongoose.Schema({
 });
 
 // Auto-generate invoiceId
-invoiceSchema.pre('save', async function (next) {
+invoiceSchema.pre('save', async function () {
   if (!this.invoiceId) {
     const count = await mongoose.model('Invoice')
       .countDocuments();
     this.invoiceId =
       `INV${String(count + 1).padStart(3, '0')}`;
   }
-  next();
 });
 
 module.exports = mongoose.model('Invoice', invoiceSchema);

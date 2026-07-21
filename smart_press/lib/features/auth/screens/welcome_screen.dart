@@ -66,6 +66,7 @@ class WelcomeScreen extends StatelessWidget {
                     context.push('/otp?role=owner'),
                 color: AppColors.accent,
               ),
+
               const SizedBox(height: 10),
               AppButton(
                 key: const Key('owner_register_btn'),
@@ -106,6 +107,7 @@ class WelcomeScreen extends StatelessWidget {
                     .push('/otp?role=customer'),
                 color: AppColors.green,
               ),
+
               const SizedBox(height: 10),
               AppButton(
                 key: const Key('customer_register_btn'),

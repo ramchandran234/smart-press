@@ -5,6 +5,7 @@ import '../../core/constants/app_colors.dart';
 // Auth
 import '../../features/auth/screens/welcome_screen.dart';
 import '../../features/auth/screens/otp_screen.dart';
+import '../../features/auth/screens/forgot_password_screen.dart';
 import '../../features/auth/screens/owner_register_screen.dart';
 import '../../features/auth/screens/owner_verify_screen.dart';
 import '../../features/auth/screens/customer_register_screen.dart';
@@ -124,8 +125,15 @@ final GoRouter appRouter = GoRouter(
       builder: (c, s) => const CustomerRegisterScreen(),
     ),
     GoRoute(
+      name: 'otp',
       path: '/otp',
       builder: (c, s) => OtpScreen(
+          role: s.uri.queryParameters['role'] ?? 'owner'),
+    ),
+    GoRoute(
+      name: 'forgot-password',
+      path: '/forgot-password',
+      builder: (c, s) => ForgotPasswordScreen(
           role: s.uri.queryParameters['role'] ?? 'owner'),
     ),
     GoRoute(
@@ -339,7 +347,8 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/customer/vendor-order',
-      builder: (c, s) => const CreateVendorOrderScreen(),
+      builder: (c, s) => CreateVendorOrderScreen(
+          vendorId: s.uri.queryParameters['vendorId']),
     ),
     GoRoute(
       path: '/customer/vendor-progress/:id',

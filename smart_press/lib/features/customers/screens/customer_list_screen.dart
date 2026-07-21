@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/customer_service.dart';
 
 class CustomerListScreen extends StatefulWidget {
   const CustomerListScreen({super.key});
@@ -18,45 +19,52 @@ class _CustomerListScreenState
   String _filter = 'All';
   final _filters = ['All', 'Active', 'Inactive'];
 
-  final _customers = [
-    {'id': 'C001', 'name': 'Priya Sharma',
-      'mobile': '+91 98765 43210', 'orders': 12,
-      'balance': 340, 'lastOrder': '05 May',
-      'active': true},
-    {'id': 'C002', 'name': 'Raj Kumar',
-      'mobile': '+91 87654 32109', 'orders': 8,
-      'balance': 0, 'lastOrder': '04 May',
-      'active': true},
-    {'id': 'C003', 'name': 'Anita Singh',
-      'mobile': '+91 76543 21098', 'orders': 23,
-      'balance': 0, 'lastOrder': '03 May',
-      'active': true},
-    {'id': 'C004', 'name': 'Suresh Babu',
-      'mobile': '+91 65432 10987', 'orders': 5,
-      'balance': 220, 'lastOrder': '01 May',
-      'active': false},
-    {'id': 'C005', 'name': 'Deepa Nair',
-      'mobile': '+91 54321 09876', 'orders': 17,
-      'balance': 0, 'lastOrder': '02 May',
-      'active': true},
-    {'id': 'C006', 'name': 'Kiran Patel',
-      'mobile': '+91 43210 98765', 'orders': 3,
-      'balance': 160, 'lastOrder': '28 Apr',
-      'active': true},
-  ];
+  List<dynamic> _customers = [];
+  bool _loading = true;
 
-  List<Map<String, dynamic>> get _filtered {
+  @override
+  void initState() {
+    super.initState();
+    _fetchCustomers();
+  }
+
+  Future<void> _fetchCustomers() async {
+    try {
+      final res = await CustomerService.getCustomers(search: _search);
+      if (res['success'] == true) {
+        if (mounted) {
+          setState(() {
+            _customers = res['customers'] as List<dynamic>;
+            _loading = false;
+          });
+        }
+      } else {
+        if (mounted) setState(() => _loading = false);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  List<dynamic> get _filtered {
     return _customers.where((c) {
-      final matchSearch = _search.isEmpty ||
-          (c['name'] as String)
-              .toLowerCase()
-              .contains(_search.toLowerCase()) ||
-          (c['mobile'] as String).contains(_search);
+      final active = c['isActive'] ?? true;
       final matchFilter = _filter == 'All' ||
-          (_filter == 'Active' && c['active'] == true) ||
-          (_filter == 'Inactive' && c['active'] == false);
-      return matchSearch && matchFilter;
-    }).cast<Map<String, dynamic>>().toList();
+          (_filter == 'Active' && active == true) ||
+          (_filter == 'Inactive' && active == false);
+      return matchFilter;
+    }).toList();
+  }
+
+  String _formatDate(String? isoString) {
+    if (isoString == null || isoString.isEmpty) return 'None';
+    try {
+      final dt = DateTime.parse(isoString);
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return '${dt.day} ${months[dt.month - 1]}';
+    } catch (e) {
+      return 'None';
+    }
   }
 
   @override
@@ -74,8 +82,13 @@ class _CustomerListScreenState
             padding: const EdgeInsets.fromLTRB(
                 16, 12, 16, 8),
             child: TextField(
-              onChanged: (v) =>
-                  setState(() => _search = v),
+              onChanged: (v) {
+                setState(() {
+                  _search = v;
+                  _loading = true;
+                });
+                _fetchCustomers();
+              },
               decoration: InputDecoration(
                 hintText: 'Search by name or mobile...',
                 prefixIcon: const Icon(Icons.search,
@@ -83,8 +96,13 @@ class _CustomerListScreenState
                 suffixIcon: _search.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear),
-                        onPressed: () =>
-                            setState(() => _search = ''),
+                        onPressed: () {
+                          setState(() {
+                            _search = '';
+                            _loading = true;
+                          });
+                          _fetchCustomers();
+                        },
                       )
                     : null,
               ),
@@ -146,11 +164,11 @@ class _CustomerListScreenState
                     AppColors.accent),
                 _stat(
                     'Outstanding',
-                    '₹${_customers.fold(0, (s, c) => s + (c['balance'] as int))}',
+                    '₹${_customers.fold<int>(0, (s, c) => s + ((c['balance'] as num? ?? 0).toInt()))}',
                     AppColors.red),
                 _stat(
                     'Active',
-                    '${_customers.where((c) => c['active'] == true).length}',
+                    '${_customers.where((c) => (c['isActive'] ?? true) == true).length}',
                     AppColors.green),
               ],
             ),
@@ -158,28 +176,33 @@ class _CustomerListScreenState
 
           // Customer list
           Expanded(
-            child: _filtered.isEmpty
-                ? const Center(
-                    child: Column(
-                      mainAxisAlignment:
-                          MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.people_outline,
-                            size: 64,
-                            color: AppColors.cardBorder),
-                        SizedBox(height: 12),
-                        Text('No customers found',
-                            style: TextStyle(
-                                color: AppColors.textSub)),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _filtered.length,
-                    itemBuilder: (_, i) =>
-                        _customerCard(_filtered[i]),
-                  ),
+            child: _loading
+                ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
+                : _filtered.isEmpty
+                    ? const Center(
+                        child: Column(
+                          mainAxisAlignment:
+                              MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.people_outline,
+                                size: 64,
+                                color: AppColors.cardBorder),
+                            SizedBox(height: 12),
+                            Text('No customers found',
+                                style: TextStyle(
+                                    color: AppColors.textSub)),
+                          ],
+                        ),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: _fetchCustomers,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _filtered.length,
+                          itemBuilder: (_, i) =>
+                              _customerCard(_filtered[i]),
+                        ),
+                      ),
           ),
         ],
       ),
@@ -198,13 +221,17 @@ class _CustomerListScreenState
   }
 
   Widget _customerCard(Map<String, dynamic> c) {
-    final hasBalance = (c['balance'] as int) > 0;
+    final balance = (c['balance'] as num? ?? 0).toInt();
+    final hasBalance = balance > 0;
+    final active = c['isActive'] ?? true;
+    final name = c['name'] as String? ?? 'N/A';
+    
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () =>
-            context.push('/customers/${c['id']}'),
+            context.push('/customers/${c['_id']}'),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(
@@ -215,7 +242,7 @@ class _CustomerListScreenState
                 backgroundColor:
                     AppColors.accent.withOpacity(0.15),
                 child: Text(
-                  (c['name'] as String)[0],
+                  name.isNotEmpty ? name[0].toUpperCase() : 'C',
                   style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -231,12 +258,12 @@ class _CustomerListScreenState
                   children: [
                     Row(
                       children: [
-                        Text(c['name'] as String,
+                        Text(name,
                             style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 15)),
                         const SizedBox(width: 6),
-                        if (!(c['active'] as bool))
+                        if (!active)
                           Container(
                             padding:
                                 const EdgeInsets.symmetric(
@@ -256,7 +283,7 @@ class _CustomerListScreenState
                           ),
                       ],
                     ),
-                    Text(c['mobile'] as String,
+                    Text(c['mobile'] as String? ?? '',
                         style: const TextStyle(
                             fontSize: 12,
                             color: AppColors.textSub)),
@@ -267,7 +294,7 @@ class _CustomerListScreenState
                           color: AppColors.accent2),
                       const SizedBox(width: 3),
                       Text(
-                          '${c['orders']} orders  •  Last: ${c['lastOrder']}',
+                          '${c['totalOrders'] ?? 0} orders  •  Last: ${_formatDate(c['lastOrderAt'] as String?)}',
                           style: const TextStyle(
                               fontSize: 11,
                               color: AppColors.textSub)),
@@ -293,7 +320,7 @@ class _CustomerListScreenState
                           style: TextStyle(
                               fontSize: 9,
                               color: AppColors.red)),
-                      Text('₹${c['balance']}',
+                      Text('₹$balance',
                           style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,

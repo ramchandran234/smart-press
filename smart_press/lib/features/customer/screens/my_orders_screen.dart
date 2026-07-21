@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/order_service.dart';
 
 class CustomerMyOrdersScreen extends StatefulWidget {
   const CustomerMyOrdersScreen({super.key});
@@ -16,35 +17,59 @@ class _CustomerMyOrdersScreenState
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  final _orders = [
-    {'id': 'ORD001', 'shop': 'Smart Press',
-      'status': 'Washing', 'items': 5,
-      'amount': '₹240', 'date': '05 May',
-      'color': AppColors.orange, 'active': true},
-    {'id': 'ORD091', 'shop': 'Smart Press',
-      'status': 'Ready', 'items': 3,
-      'amount': '₹180', 'date': '04 May',
-      'color': AppColors.green, 'active': true},
-    {'id': 'ORD082', 'shop': 'Smart Press',
-      'status': 'Delivered', 'items': 8,
-      'amount': '₹480', 'date': '28 Apr',
-      'color': AppColors.textSub, 'active': false},
-    {'id': 'ORD074', 'shop': 'Smart Press',
-      'status': 'Delivered', 'items': 4,
-      'amount': '₹220', 'date': '15 Apr',
-      'color': AppColors.textSub, 'active': false},
-  ];
+  List<dynamic> _orders = [];
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _fetchOrders();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchOrders() async {
+    try {
+      final res = await OrderService.getCustomerAppOrders();
+      if (res['success'] == true) {
+        if (mounted) {
+          setState(() {
+            _orders = res['orders'] as List<dynamic>;
+            _loading = false;
+          });
+        }
+      } else {
+        if (mounted) setState(() => _loading = false);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'received': return AppColors.accent;
+      case 'washing':
+      case 'ironing': return AppColors.orange;
+      case 'ready': return AppColors.green;
+      case 'delivered': return AppColors.textSub;
+      default: return AppColors.accent;
+    }
+  }
+
+  String _formatDate(String isoString) {
+    try {
+      final dt = DateTime.parse(isoString);
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return '${dt.day} ${months[dt.month - 1]}';
+    } catch (e) {
+      return '';
+    }
   }
 
   @override
@@ -64,16 +89,21 @@ class _CustomerMyOrdersScreenState
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildList(_orders
-              .where((o) => o['active'] == true)
-              .toList()),
-          _buildList(_orders
-              .where((o) => o['active'] == false)
-              .toList()),
-        ],
+      body: RefreshIndicator(
+        onRefresh: _fetchOrders,
+        child: _loading
+            ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
+            : TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildList(_orders
+                      .where((o) => o['status'] != 'delivered' && o['status'] != 'cancelled')
+                      .toList()),
+                  _buildList(_orders
+                      .where((o) => o['status'] == 'delivered' || o['status'] == 'cancelled')
+                      .toList()),
+                ],
+              ),
       ),
       bottomNavigationBar: _bottomNav(context, 1),
     );
@@ -99,13 +129,18 @@ class _CustomerMyOrdersScreenState
       itemCount: list.length,
       itemBuilder: (_, i) {
         final o = list[i] as Map<String, dynamic>;
-        final color = o['color'] as Color;
+        final status = o['status'] as String? ?? 'received';
+        final color = _getStatusColor(status);
+        final shop = o['owner'] as Map<String, dynamic>?;
+        final shopName = shop != null ? shop['shopName'] as String? ?? 'Smart Press' : 'Smart Press';
+        final active = status != 'delivered' && status != 'cancelled';
+        
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
             onTap: () => context.push(
-                '/customer/order-detail/${o['id']}'),
+                '/customer/order-detail/${o['_id']}'),
             child: Padding(
               padding: const EdgeInsets.all(14),
               child: Column(
@@ -131,12 +166,12 @@ class _CustomerMyOrdersScreenState
                           crossAxisAlignment:
                               CrossAxisAlignment.start,
                           children: [
-                            Text(o['shop'] as String,
+                            Text(shopName,
                                 style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 15)),
                             Text(
-                                '${o['id']}  •  ${o['date']}',
+                                '${o['orderId']}  •  ${_formatDate(o['createdAt'] as String? ?? '')}',
                                 style: const TextStyle(
                                     fontSize: 12,
                                     color: AppColors.textSub)),
@@ -147,7 +182,7 @@ class _CustomerMyOrdersScreenState
                         crossAxisAlignment:
                             CrossAxisAlignment.end,
                         children: [
-                          Text(o['amount'] as String,
+                          Text('₹${(o['totalAmount'] as num? ?? 0).toStringAsFixed(0)}',
                               style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16)),
@@ -159,7 +194,7 @@ class _CustomerMyOrdersScreenState
                               borderRadius:
                                   BorderRadius.circular(20),
                             ),
-                            child: Text(o['status'] as String,
+                            child: Text(status,
                                 style: TextStyle(
                                     fontSize: 10,
                                     color: color,
@@ -170,14 +205,14 @@ class _CustomerMyOrdersScreenState
                       ),
                     ],
                   ),
-                  if (o['active'] == true) ...[
+                  if (active) ...[
                     const SizedBox(height: 12),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: LinearProgressIndicator(
-                        value: o['status'] == 'Washing'
-                            ? 0.4
-                            : 0.8,
+                        value: status == 'washing'
+                            ? 0.5
+                            : (status == 'ironing' ? 0.75 : (status == 'ready' ? 0.9 : 0.25)),
                         backgroundColor: AppColors.cardBorder,
                         valueColor:
                             AlwaysStoppedAnimation(color),
@@ -189,14 +224,14 @@ class _CustomerMyOrdersScreenState
                       mainAxisAlignment:
                           MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Status: ${o['status']}',
+                        Text('Status: $status',
                             style: TextStyle(
                                 fontSize: 11,
                                 color: color,
                                 fontWeight: FontWeight.w600)),
                         GestureDetector(
                           onTap: () => context.push(
-                              '/customer/order-progress/${o['id']}'),
+                              '/customer/order-progress/${o['_id']}'),
                           child: const Text('Track →',
                               style: TextStyle(
                                   fontSize: 11,

@@ -35,3 +35,11 @@ app.*.map.json
 .DS_Store
 Thumbs.db
 **/.git_backup/
+
+# Local DB & Temp Scripts
+mongodb_data/
+smart_press_backend/query_users.js
+smart_press_backend/delete_users.js
+smart_press_backend/check_name.js
+smart_press_selenium/reports/
+~$*

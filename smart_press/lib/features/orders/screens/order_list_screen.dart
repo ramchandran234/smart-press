@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/order_service.dart';
 
 class OrderListScreen extends StatefulWidget {
   const OrderListScreen({super.key});
@@ -17,31 +18,14 @@ class _OrderListScreenState extends State<OrderListScreen>
   String _typeFilter = 'All';
   final List<String> _types = ['All', 'Walk-in', 'Pickup', 'Delivery'];
 
-  final List<Map<String, dynamic>> _orders = [
-    {'id': 'ORD001', 'name': 'Priya Sharma', 'type': 'Pickup',
-      'status': 'Washing', 'amount': '₹240', 'date': '05 May',
-      'items': 5, 'color': AppColors.orange},
-    {'id': 'ORD002', 'name': 'Raj Kumar', 'type': 'Walk-in',
-      'status': 'Ready', 'amount': '₹180', 'date': '05 May',
-      'items': 3, 'color': AppColors.green},
-    {'id': 'ORD003', 'name': 'Anita Singh', 'type': 'Delivery',
-      'status': 'Received', 'amount': '₹320', 'date': '04 May',
-      'items': 7, 'color': AppColors.accent},
-    {'id': 'ORD004', 'name': 'Suresh Babu', 'type': 'Pickup',
-      'status': 'Delivered', 'amount': '₹560', 'date': '04 May',
-      'items': 10, 'color': AppColors.textSub},
-    {'id': 'ORD005', 'name': 'Deepa Nair', 'type': 'Walk-in',
-      'status': 'Ironing', 'amount': '₹150', 'date': '03 May',
-      'items': 4, 'color': AppColors.accent2},
-    {'id': 'ORD006', 'name': 'Kiran Patel', 'type': 'Delivery',
-      'status': 'Ready', 'amount': '₹420', 'date': '03 May',
-      'items': 8, 'color': AppColors.green},
-  ];
+  List<dynamic> _orders = [];
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _fetchOrders();
   }
 
   @override
@@ -50,11 +34,51 @@ class _OrderListScreenState extends State<OrderListScreen>
     super.dispose();
   }
 
-  List<Map<String, dynamic>> get _filtered {
+  Future<void> _fetchOrders() async {
+    try {
+      final res = await OrderService.getOrders();
+      if (res['success'] == true) {
+        if (mounted) {
+          setState(() {
+            _orders = res['orders'] as List<dynamic>;
+            _loading = false;
+          });
+        }
+      } else {
+        if (mounted) setState(() => _loading = false);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  List<dynamic> get _filtered {
     return _orders.where((o) {
-      if (_typeFilter != 'All' && o['type'] != _typeFilter) return false;
-      return true;
+      if (_typeFilter == 'All') return true;
+      final type = o['orderType'] as String? ?? 'walk-in';
+      return type.toLowerCase() == _typeFilter.toLowerCase();
     }).toList();
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'received': return AppColors.accent;
+      case 'washing':
+      case 'ironing': return AppColors.orange;
+      case 'ready': return AppColors.green;
+      case 'delivered': return AppColors.textSub;
+      default: return AppColors.accent;
+    }
+  }
+
+  String _formatDate(String isoString) {
+    try {
+      final dt = DateTime.parse(isoString);
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return '${dt.day} ${months[dt.month - 1]}';
+    } catch (e) {
+      return '';
+    }
   }
 
   @override
@@ -79,78 +103,83 @@ class _OrderListScreenState extends State<OrderListScreen>
               onPressed: () {}),
         ],
       ),
-      body: Column(
-        children: [
-          // Type filter chips
-          Container(
-            color: AppColors.white,
-            padding: const EdgeInsets.symmetric(
-                horizontal: 12, vertical: 10),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: _types.map((t) {
-                  final selected = _typeFilter == t;
-                  return GestureDetector(
-                    onTap: () =>
-                        setState(() => _typeFilter = t),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? AppColors.accent
-                            : AppColors.bgLight,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                            color: selected
-                                ? AppColors.accent
-                                : AppColors.cardBorder),
-                      ),
-                      child: Text(t,
-                          style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+      body: RefreshIndicator(
+        onRefresh: _fetchOrders,
+        child: Column(
+          children: [
+            // Type filter chips
+            Container(
+              color: AppColors.white,
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 12, vertical: 10),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: _types.map((t) {
+                    final selected = _typeFilter == t;
+                    return GestureDetector(
+                      onTap: () =>
+                          setState(() => _typeFilter = t),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? AppColors.accent
+                              : AppColors.bgLight,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
                               color: selected
-                                  ? AppColors.white
-                                  : AppColors.textSub)),
-                    ),
-                  );
-                }).toList(),
+                                  ? AppColors.accent
+                                  : AppColors.cardBorder),
+                        ),
+                        child: Text(t,
+                           style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: selected
+                                    ? AppColors.white
+                                    : AppColors.textSub)),
+                      ),
+                    );
+                  }).toList(),
+                ),
               ),
             ),
-          ),
-
-          // Order count
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
-            child: Row(
-              children: [
-                Text('${_filtered.length} orders found',
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColors.textSub)),
-              ],
+  
+            // Order count
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+              child: Row(
+                children: [
+                  Text('${_filtered.length} orders found',
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColors.textSub)),
+                ],
+              ),
             ),
-          ),
-
-          // Order list
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildList(_filtered),
-                _buildList(_filtered
-                    .where((o) => o['status'] != 'Delivered')
-                    .toList()),
-                _buildList(_filtered
-                    .where((o) => o['status'] == 'Delivered')
-                    .toList()),
-              ],
+  
+            // Order list
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
+                  : TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildList(_filtered),
+                        _buildList(_filtered
+                            .where((o) => o['status'] != 'delivered' && o['status'] != 'cancelled')
+                            .toList()),
+                        _buildList(_filtered
+                            .where((o) => o['status'] == 'delivered')
+                            .toList()),
+                      ],
+                    ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/orders/new'),
@@ -164,7 +193,7 @@ class _OrderListScreenState extends State<OrderListScreen>
     );
   }
 
-  Widget _buildList(List<Map<String, dynamic>> list) {
+  Widget _buildList(List<dynamic> list) {
     if (list.isEmpty) {
       return const Center(
         child: Column(
@@ -187,12 +216,17 @@ class _OrderListScreenState extends State<OrderListScreen>
   }
 
   Widget _orderCard(Map<String, dynamic> o) {
-    final color = o['color'] as Color;
+    final status = o['status'] as String? ?? 'received';
+    final color = _getStatusColor(status);
+    final cust = o['customer'] as Map<String, dynamic>?;
+    final custName = cust != null ? cust['name'] as String? ?? 'Walk-in' : 'Walk-in';
+    final itemsCount = (o['garments'] as List?)?.fold<int>(0, (sum, item) => sum + (item['qty'] as int? ?? 0)) ?? 0;
+    
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => context.push('/orders/${o['id']}'),
+        onTap: () => context.push('/orders/${o['_id']}'),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(
@@ -205,7 +239,7 @@ class _OrderListScreenState extends State<OrderListScreen>
                   color: color.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(_typeIcon(o['type']),
+                child: Icon(_typeIcon(o['orderType'] as String? ?? 'walk-in'),
                     color: color, size: 22),
               ),
               const SizedBox(width: 12),
@@ -214,13 +248,13 @@ class _OrderListScreenState extends State<OrderListScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(o['name'],
+                    Text(custName,
                         style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14)),
                     const SizedBox(height: 3),
                     Row(children: [
-                      Text(o['id'],
+                      Text(o['orderId'] as String? ?? '',
                           style: const TextStyle(
                               fontSize: 11,
                               color: AppColors.textSub)),
@@ -233,13 +267,13 @@ class _OrderListScreenState extends State<OrderListScreen>
                             shape: BoxShape.circle),
                       ),
                       const SizedBox(width: 8),
-                      Text('${o['items']} items',
+                      Text('$itemsCount items',
                           style: const TextStyle(
                               fontSize: 11,
                               color: AppColors.textSub)),
                     ]),
                     const SizedBox(height: 3),
-                    Text(o['date'],
+                    Text(_formatDate(o['createdAt'] as String? ?? ''),
                         style: const TextStyle(
                             fontSize: 11,
                             color: AppColors.textSub)),
@@ -250,7 +284,7 @@ class _OrderListScreenState extends State<OrderListScreen>
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(o['amount'],
+                  Text('₹${(o['totalAmount'] as num? ?? 0).toStringAsFixed(0)}',
                       style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
@@ -263,7 +297,7 @@ class _OrderListScreenState extends State<OrderListScreen>
                       color: color.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Text(o['status'],
+                    child: Text(status,
                         style: TextStyle(
                             fontSize: 10,
                             color: color,
@@ -280,8 +314,8 @@ class _OrderListScreenState extends State<OrderListScreen>
 
   IconData _typeIcon(String type) {
     switch (type) {
-      case 'Pickup': return Icons.local_shipping_outlined;
-      case 'Delivery': return Icons.delivery_dining;
+      case 'pickup': return Icons.local_shipping_outlined;
+      case 'delivery': return Icons.delivery_dining;
       default: return Icons.store_outlined;
     }
   }

@@ -1,8 +1,8 @@
 // lib/features/settings/screens/app_settings_screen.dart
-// PPT Screen 39 — App Settings Screen
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/http_helper.dart';
 
 class AppSettingsScreen extends StatefulWidget {
   const AppSettingsScreen({super.key});
@@ -22,212 +22,252 @@ class _AppSettingsScreenState
     'English', 'Hindi', 'Tamil', 'Telugu', 'Kannada'
   ];
 
+  Map<String, dynamic>? _user;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    try {
+      final u = await HttpHelper.getUser();
+      setState(() {
+        _user = u;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final shopName = _user?['shopName'] as String? ?? _user?['name'] as String? ?? 'Smart Press';
+    final mobile = _user?['mobile'] as String? ?? '';
+    final address = _user?['address'] as String? ?? 'Koramangala';
+    final city = _user?['city'] as String? ?? 'Bengaluru';
+    final fullAddress = '$address, $city';
+
+    final initial = shopName.isNotEmpty ? shopName.substring(0, 1).toUpperCase() : 'S';
+
     return Scaffold(
+      backgroundColor: AppColors.bgLight,
       appBar: AppBar(title: const Text('App Settings')),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Profile header
-            Container(
-              padding: const EdgeInsets.all(20),
-              color: AppColors.darkBg,
-              child: Row(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
+          : SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Stack(
-                    children: [
-                      Container(
-                        width: 70,
-                        height: 70,
-                        decoration: BoxDecoration(
-                          color: AppColors.accent
-                              .withOpacity(0.2),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                              color: AppColors.accent,
-                              width: 2),
-                        ),
-                        child: const Icon(Icons.store,
-                            size: 36,
-                            color: AppColors.accent),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          width: 24,
-                          height: 24,
-                          decoration: const BoxDecoration(
-                            color: AppColors.gold,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.camera_alt,
-                              size: 14,
-                              color: AppColors.white),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 16),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                  // Profile header
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    color: AppColors.darkBg,
+                    child: Row(
                       children: [
-                        Text('Smart Press',
-                            style: TextStyle(
-                                color: AppColors.white,
-                                fontSize: 18,
-                                fontWeight:
-                                    FontWeight.bold)),
-                        Text('+91 98765 00000',
-                            style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 13)),
-                        Text('Koramangala, Bengaluru',
-                            style: TextStyle(
-                                color: Colors.white60,
-                                fontSize: 12)),
+                        Stack(
+                          children: [
+                            Container(
+                              width: 70,
+                              height: 70,
+                              decoration: BoxDecoration(
+                                color: AppColors.accent.withOpacity(0.2),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                    color: AppColors.accent,
+                                    width: 2),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  initial,
+                                  style: const TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.accent),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                width: 24,
+                                height: 24,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.gold,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.camera_alt,
+                                    size: 14,
+                                    color: AppColors.white),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                            children: [
+                              Text(shopName,
+                                  style: const TextStyle(
+                                      color: AppColors.white,
+                                      fontSize: 18,
+                                      fontWeight:
+                                          FontWeight.bold)),
+                              Text('+91 $mobile',
+                                  style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 13)),
+                              Text(fullAddress,
+                                  style: const TextStyle(
+                                      color: Colors.white60,
+                                      fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {},
+                          child: const Text('Edit',
+                              style: TextStyle(
+                                  color: AppColors.gold)),
+                        ),
                       ],
                     ),
                   ),
-                  TextButton(
-                    onPressed: () {},
-                    child: const Text('Edit',
-                        style: TextStyle(
-                            color: AppColors.gold)),
+
+                  const SizedBox(height: 8),
+                  _sectionHeader('General'),
+                  _settingItem(
+                    icon: Icons.language,
+                    color: AppColors.accent2,
+                    title: 'Language',
+                    subtitle: _language,
+                    trailing: DropdownButton<String>(
+                      value: _language,
+                      underline: const SizedBox(),
+                      items: _languages
+                          .map((l) => DropdownMenuItem(
+                              value: l, child: Text(l)))
+                          .toList(),
+                      onChanged: (v) =>
+                          setState(() => _language = v!),
+                    ),
                   ),
+                  _settingItem(
+                    icon: Icons.store_outlined,
+                    color: AppColors.orange,
+                    title: 'Shop Profile',
+                    subtitle: 'Name, address, hours',
+                    trailing: const Icon(Icons.chevron_right,
+                        color: AppColors.cardBorder),
+                    onTap: () {},
+                  ),
+                  _settingItem(
+                    icon: Icons.qr_code,
+                    color: AppColors.gold,
+                    title: 'Payment QR Code',
+                    subtitle: 'Update GPay / PhonePe QR',
+                    trailing: const Icon(Icons.chevron_right,
+                        color: AppColors.cardBorder),
+                    onTap: () => context.push('/settings/qr'),
+                  ),
+
+                  _sectionHeader('Notifications'),
+                  _switchItem(
+                    icon: Icons.notifications_outlined,
+                    color: AppColors.accent,
+                    title: 'Push Notifications',
+                    subtitle: 'Order updates & reminders',
+                    value: _notifications,
+                    onChanged: (v) =>
+                        setState(() => _notifications = v),
+                  ),
+                  _switchItem(
+                    icon: Icons.sms_outlined,
+                    color: AppColors.green,
+                    title: 'SMS Alerts',
+                    subtitle: 'Send SMS to customers',
+                    value: _smsAlerts,
+                    onChanged: (v) =>
+                        setState(() => _smsAlerts = v),
+                  ),
+
+                  _sectionHeader('Data & Backup'),
+                  _switchItem(
+                    icon: Icons.backup_outlined,
+                    color: AppColors.accent2,
+                    title: 'Auto Backup',
+                    subtitle: 'Daily backup to cloud',
+                    value: _autoBackup,
+                    onChanged: (v) =>
+                        setState(() => _autoBackup = v),
+                  ),
+                  _settingItem(
+                    icon: Icons.download_outlined,
+                    color: AppColors.green,
+                    title: 'Export All Data',
+                    subtitle: 'Download full backup',
+                    trailing: const Icon(Icons.chevron_right,
+                        color: AppColors.cardBorder),
+                    onTap: () => context.push('/reports/export'),
+                  ),
+
+                  _sectionHeader('About'),
+                  _settingItem(
+                    icon: Icons.info_outline,
+                    color: AppColors.textSub,
+                    title: 'App Version',
+                    subtitle: 'v1.0.0',
+                    trailing: null,
+                  ),
+                  _settingItem(
+                    icon: Icons.support_agent,
+                    color: AppColors.accent,
+                    title: 'Support',
+                    subtitle: 'Contact us for help',
+                    trailing: const Icon(Icons.chevron_right,
+                        color: AppColors.cardBorder),
+                    onTap: () {},
+                  ),
+
+                  const SizedBox(height: 20),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        key: const Key('settings_logout_btn'),
+                        onPressed: () {
+                          HttpHelper.clearAll();
+                          context.go('/');
+                        },
+                        icon: const Icon(Icons.logout,
+                            color: AppColors.red),
+                        label: const Text('Logout',
+                            style: TextStyle(
+                                color: AppColors.red,
+                                fontWeight: FontWeight.bold)),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(
+                              color: AppColors.red),
+                          shape: RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 30),
                 ],
               ),
             ),
-
-            const SizedBox(height: 8),
-            _sectionHeader('General'),
-            _settingItem(
-              icon: Icons.language,
-              color: AppColors.accent2,
-              title: 'Language',
-              subtitle: _language,
-              trailing: DropdownButton<String>(
-                value: _language,
-                underline: const SizedBox(),
-                items: _languages
-                    .map((l) => DropdownMenuItem(
-                        value: l, child: Text(l)))
-                    .toList(),
-                onChanged: (v) =>
-                    setState(() => _language = v!),
-              ),
-            ),
-            _settingItem(
-              icon: Icons.store_outlined,
-              color: AppColors.orange,
-              title: 'Shop Profile',
-              subtitle: 'Name, address, hours',
-              trailing: const Icon(Icons.chevron_right,
-                  color: AppColors.cardBorder),
-              onTap: () {},
-            ),
-            _settingItem(
-              icon: Icons.qr_code,
-              color: AppColors.gold,
-              title: 'Payment QR Code',
-              subtitle: 'Update GPay / PhonePe QR',
-              trailing: const Icon(Icons.chevron_right,
-                  color: AppColors.cardBorder),
-              onTap: () => context.push('/settings/qr'),
-            ),
-
-            _sectionHeader('Notifications'),
-            _switchItem(
-              icon: Icons.notifications_outlined,
-              color: AppColors.accent,
-              title: 'Push Notifications',
-              subtitle: 'Order updates & reminders',
-              value: _notifications,
-              onChanged: (v) =>
-                  setState(() => _notifications = v),
-            ),
-            _switchItem(
-              icon: Icons.sms_outlined,
-              color: AppColors.green,
-              title: 'SMS Alerts',
-              subtitle: 'Send SMS to customers',
-              value: _smsAlerts,
-              onChanged: (v) =>
-                  setState(() => _smsAlerts = v),
-            ),
-
-            _sectionHeader('Data & Backup'),
-            _switchItem(
-              icon: Icons.backup_outlined,
-              color: AppColors.accent2,
-              title: 'Auto Backup',
-              subtitle: 'Daily backup to cloud',
-              value: _autoBackup,
-              onChanged: (v) =>
-                  setState(() => _autoBackup = v),
-            ),
-            _settingItem(
-              icon: Icons.download_outlined,
-              color: AppColors.green,
-              title: 'Export All Data',
-              subtitle: 'Download full backup',
-              trailing: const Icon(Icons.chevron_right,
-                  color: AppColors.cardBorder),
-              onTap: () => context.push('/reports/export'),
-            ),
-
-            _sectionHeader('About'),
-            _settingItem(
-              icon: Icons.info_outline,
-              color: AppColors.textSub,
-              title: 'App Version',
-              subtitle: 'v1.0.0',
-              trailing: null,
-            ),
-            _settingItem(
-              icon: Icons.support_agent,
-              color: AppColors.accent,
-              title: 'Support',
-              subtitle: 'Contact us for help',
-              trailing: const Icon(Icons.chevron_right,
-                  color: AppColors.cardBorder),
-              onTap: () {},
-            ),
-
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 16),
-              child: SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: OutlinedButton.icon(
-                  key: const Key('settings_logout_btn'),
-                  onPressed: () => context.go('/'),
-                  icon: const Icon(Icons.logout,
-                      color: AppColors.red),
-                  label: const Text('Logout',
-                      style: TextStyle(
-                          color: AppColors.red,
-                          fontWeight: FontWeight.bold)),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(
-                        color: AppColors.red),
-                    shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(12)),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 30),
-          ],
-        ),
-      ),
     );
   }
 

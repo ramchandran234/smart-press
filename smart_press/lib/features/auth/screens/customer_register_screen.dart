@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
 
@@ -17,6 +18,7 @@ class _CustomerRegisterScreenState
     extends State<CustomerRegisterScreen> {
   final _nameController    = TextEditingController();
   final _mobileController  = TextEditingController();
+  final _passwordController = TextEditingController();
   final _whatsappController= TextEditingController();
   final _addressController = TextEditingController();
   final _areaController    = TextEditingController();
@@ -36,6 +38,7 @@ class _CustomerRegisterScreenState
   void dispose() {
     _nameController.dispose();
     _mobileController.dispose();
+    _passwordController.dispose();
     _whatsappController.dispose();
     _addressController.dispose();
     _areaController.dispose();
@@ -53,10 +56,69 @@ class _CustomerRegisterScreenState
     );
   }
 
+  void _showRecoveryDialog(String recoveryPin) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.vpn_key, color: AppColors.accent2),
+              SizedBox(width: 10),
+              Text('Save Your Recovery PIN', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Please save this 6-digit PIN securely. You will need it to reset your password if you ever forget it.',
+                style: TextStyle(fontSize: 14, color: AppColors.textDark),
+              ),
+              const SizedBox(height: 20),
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.green.withOpacity(0.3)),
+                  ),
+                  child: SelectableText(
+                    recoveryPin,
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 4,
+                      color: AppColors.green,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                context.go('/otp?role=customer');
+              },
+              child: const Text('OK, Copied PIN', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.accent2)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _register() async {
-    final name   = _nameController.text.trim();
-    final mobile = _mobileController.text.trim();
-    final city   = _cityController.text.trim();
+    final name     = _nameController.text.trim();
+    final mobile   = _mobileController.text.trim();
+    final password = _passwordController.text.trim();
+    final city     = _cityController.text.trim();
 
     if (name.isEmpty) {
       _showSnack('Please enter your name',
@@ -68,6 +130,10 @@ class _CustomerRegisterScreenState
           AppColors.red);
       return;
     }
+    if (password.length < 6) {
+      _showSnack('Password must be at least 6 characters', AppColors.red);
+      return;
+    }
     if (city.isEmpty) {
       _showSnack('Please enter your city',
           AppColors.red);
@@ -76,16 +142,33 @@ class _CustomerRegisterScreenState
 
     setState(() => _isLoading = true);
 
-    // Go to OTP with mobile for verification
-    await Future.delayed(
-        const Duration(milliseconds: 300));
+    final result = await AuthService.register(
+      name: name,
+      mobile: mobile,
+      password: password,
+      role: 'customer',
+      extra: {
+        'addressLine1': _addressController.text.trim(),
+        'area': _areaController.text.trim(),
+        'city': city,
+        'whatsapp': _whatsappSame ? mobile : _whatsappController.text.trim(),
+        'preferredSlot': _preferredSlot,
+      },
+    );
 
     setState(() => _isLoading = false);
 
     if (!mounted) return;
 
-    // Navigate to OTP screen with customer role
-    context.push('/otp?role=customer');
+    if (result['success'] == true) {
+      await AuthService.logout();
+      if (!mounted) return;
+      final user = result['user'] as Map<String, dynamic>?;
+      final recoveryPin = user?['recoveryPin'] as String? ?? '000000';
+      _showRecoveryDialog(recoveryPin);
+    } else {
+      _showSnack(result['error'] ?? 'Registration failed', AppColors.red);
+    }
   }
 
   @override
@@ -157,6 +240,13 @@ class _CustomerRegisterScreenState
               hint: '+91 XXXXXXXXXX',
               controller: _mobileController,
               keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 14),
+            AppTextField(
+              label: 'Password',
+              hint: 'Enter a password',
+              controller: _passwordController,
+              obscure: true,
             ),
             const SizedBox(height: 14),
 
@@ -266,7 +356,7 @@ class _CustomerRegisterScreenState
                 : AppButton(
                     label: 'Register & Continue',
                     color: AppColors.green,
-                    onTap: _register,
+                    onTap: () { _register(); },
                   ),
             const SizedBox(height: 12),
             Center(

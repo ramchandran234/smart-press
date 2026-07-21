@@ -13,16 +13,22 @@ const userSchema = new mongoose.Schema({
     unique: true,
     trim: true,
   },
+  password: {
+    type: String,
+    trim: true,
+  },
   role: {
     type: String,
     enum: ['owner', 'customer'],
     default: 'customer',
   },
-  // Owner fields
-  shopName:   { type: String, trim: true },
-  shopImage:  { type: String },
-  address:    { type: String },
-  city:       { type: String },
+  // Owner & Customer fields
+  shopName:     { type: String, trim: true },
+  shopImage:    { type: String },
+  addressLine1: { type: String, trim: true },
+  area:         { type: String, trim: true },
+  address:      { type: String },
+  city:         { type: String },
   gstin:      { type: String },
   upiId:      { type: String },
   qrImage:    { type: String },
@@ -33,6 +39,7 @@ const userSchema = new mongoose.Schema({
   // OTP fields
   otp:        { type: String },
   otpExpiry:  { type: Date },
+  recoveryPin: { type: String },
 }, {
   timestamps: true,
 });

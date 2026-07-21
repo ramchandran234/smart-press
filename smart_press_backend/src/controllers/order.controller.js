@@ -230,3 +230,111 @@ exports.collectPayment = async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 };
+
+// Get orders for the logged-in customer app user
+exports.getCustomerOrdersForApp = async (req, res) => {
+  try {
+    const cleanMobile = req.user.mobile;
+    
+    // Find all customer profiles created by owners for this mobile number
+    const customerProfiles = await Customer.find({ mobile: cleanMobile });
+    const customerIds = customerProfiles.map(c => c._id);
+    
+    const orders = await Order.find({ customer: { $in: customerIds } })
+      .populate('owner', 'name shopName address mobile')
+      .populate('customer', 'name mobile area')
+      .sort({ createdAt: -1 });
+      
+    res.json({
+      success: true,
+      orders
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// Customer places an order to a vendor/owner
+exports.customerCreateOrder = async (req, res) => {
+  try {
+    const {
+      ownerId, garments, orderType,
+      serviceType, notes,
+    } = req.body;
+
+    if (!ownerId || !garments) {
+      return res.status(400).json({
+        success: false,
+        error: 'Owner ID and garments are required',
+      });
+    }
+
+    // 1. Find or create a Customer profile under this owner for the logged-in customer's mobile
+    let customerProfile = await Customer.findOne({ owner: ownerId, mobile: req.user.mobile });
+    if (!customerProfile) {
+      customerProfile = await Customer.create({
+        owner: ownerId,
+        name: req.user.name,
+        mobile: req.user.mobile,
+        whatsapp: req.user.mobile,
+        isActive: true,
+      });
+    }
+
+    // 2. Calculate totals (using a standard rate e.g. 40 per garment if not specified)
+    const processedGarments = garments.map(g => {
+      const rate = g.rate || 40;
+      return {
+        name: g.name,
+        qty: Number(g.qty),
+        rate: Number(rate),
+        amount: Number(g.qty) * Number(rate),
+        service: serviceType || 'Wash + Iron',
+      };
+    });
+
+    const subtotal = processedGarments.reduce((sum, g) => sum + g.amount, 0);
+    const totalAmount = subtotal;
+
+    // 3. Create the order
+    const order = await Order.create({
+      owner:        ownerId,
+      customer:     customerProfile._id,
+      garments:     processedGarments,
+      orderType:    orderType || 'walk-in',
+      serviceType:  serviceType || 'Wash + Iron',
+      subtotal,
+      totalAmount,
+      notes,
+      statusHistory: [{
+        status: 'received',
+        note: 'Order placed by customer',
+        updatedBy: req.user.id,
+      }],
+    });
+
+    // 4. Update customer stats
+    customerProfile.totalOrders += 1;
+    customerProfile.totalSpend += totalAmount;
+    customerProfile.balance += totalAmount;
+    customerProfile.lastOrderAt = new Date();
+    await customerProfile.save();
+
+    // 5. Create invoice
+    await Invoice.create({
+      owner:       ownerId,
+      order:       order._id,
+      customer:    customerProfile._id,
+      subtotal,
+      totalAmount,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Order placed successfully',
+      order,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};

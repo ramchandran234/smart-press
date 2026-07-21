@@ -1,6 +1,8 @@
 // server.js
 'use strict';
 
+require('dotenv').config();
+
 if (!process.env.MONGO_URI) {
   process.env.MONGO_URI  = 'mongodb://127.0.0.1:27017/smartpress';
   process.env.JWT_SECRET = 'smartpress_super_secret_2026';
@@ -20,7 +22,7 @@ console.log(`🗄️  MongoDB     : ${MONGO ? '✅ set' : '❌ missing'}`);
 
 mongoose.connect(MONGO)
   .then(() => {
-    console.log('✅ MongoDB Connected!');
+    console.log(`✅ MongoDB Connected to: ${mongoose.connection.host}`);
     // Important: listen on 0.0.0.0 for Railway
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`\n🚀 Smart Press API running on port ${PORT}`);

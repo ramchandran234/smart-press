@@ -27,7 +27,7 @@ class OrderService {
   // ── Create order ──────────────────────────────────
   static Future<Map<String, dynamic>> createOrder(
       Map<String, dynamic> data) async {
-    return HttpHelper.post('/orders', data);
+    return HttpHelper.post('/orders', data, withAuth: true);
   }
 
   // ── Update status ─────────────────────────────────
@@ -51,6 +51,7 @@ class OrderService {
     return HttpHelper.post(
       '/orders/$id/payment',
       {'amount': amount, 'paymentMode': paymentMode},
+      withAuth: true,
     );
   }
 
@@ -64,5 +65,9 @@ class OrderService {
     if (from != null) q += '&from=$from';
     if (to != null)   q += '&to=$to';
     return HttpHelper.get(q);
+  }
+
+  static Future<Map<String, dynamic>> getCustomerAppOrders() async {
+    return HttpHelper.get('/orders/customer-app');
   }
 }

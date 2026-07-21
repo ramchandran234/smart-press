@@ -23,7 +23,7 @@ class CustomerService {
   // ── Create customer ───────────────────────────────
   static Future<Map<String, dynamic>> createCustomer(
       Map<String, dynamic> data) async {
-    return HttpHelper.post('/customers', data);
+    return HttpHelper.post('/customers', data, withAuth: true);
   }
 
   // ── Update customer ───────────────────────────────

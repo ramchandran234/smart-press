@@ -1,19 +1,95 @@
 // lib/features/orders/screens/order_detail_screen.dart
-// PPT Screen 9 — Order Detail Screen
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/order_service.dart';
 import '../../../shared/widgets/app_button.dart';
 
-class OrderDetailScreen extends StatelessWidget {
+class OrderDetailScreen extends StatefulWidget {
   final String orderId;
   const OrderDetailScreen({super.key, required this.orderId});
 
   @override
+  State<OrderDetailScreen> createState() => _OrderDetailScreenState();
+}
+
+class _OrderDetailScreenState extends State<OrderDetailScreen> {
+  Map<String, dynamic>? _order;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOrder();
+  }
+
+  Future<void> _loadOrder() async {
+    try {
+      final res = await OrderService.getOrderById(widget.orderId);
+      if (res['success'] == true) {
+        setState(() {
+          _order = res['order'];
+          _isLoading = false;
+        });
+      } else {
+        setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: Text('Order: ${widget.orderId}')),
+        body: const Center(child: CircularProgressIndicator(color: AppColors.accent)),
+      );
+    }
+
+    if (_order == null) {
+      return Scaffold(
+        appBar: AppBar(title: Text('Order: ${widget.orderId}')),
+        body: const Center(child: Text('Order not found')),
+      );
+    }
+
+    final customer = _order!['customer'] as Map<String, dynamic>?;
+    final customerName = customer?['name'] as String? ?? 'Walk-in';
+    final customerMobile = customer?['mobile'] as String? ?? '';
+    
+    final addressLine1 = customer?['addressLine1'] as String? ?? '';
+    final area = customer?['area'] as String? ?? '';
+    final city = customer?['city'] as String? ?? '';
+    final addressList = [addressLine1, area, city].where((s) => s.isNotEmpty).toList();
+    final customerAddress = addressList.isNotEmpty ? addressList.join(', ') : 'Not provided';
+
+    final serviceType = _order!['serviceType'] as String? ?? 'Wash + Iron';
+    final orderType = _order!['orderType'] as String? ?? 'walk-in';
+    
+    final createdAtStr = _order!['createdAt'] as String? ?? '';
+    final createdDate = createdAtStr.isNotEmpty 
+        ? createdAtStr.substring(0, 10) 
+        : 'Unknown';
+
+    final expectedAtStr = _order!['expectedDate'] as String? ?? '';
+    final expectedDate = expectedAtStr.isNotEmpty 
+        ? expectedAtStr.substring(0, 10) 
+        : 'Flexible';
+
+    final garments = _order!['garments'] as List<dynamic>? ?? [];
+    final subtotal = _order!['subtotal'] as num? ?? 0;
+    final deliveryCharge = _order!['deliveryCharge'] as num? ?? 0;
+    final totalAmount = _order!['totalAmount'] as num? ?? 0;
+    final isPaid = _order!['isPaid'] as bool? ?? false;
+
+    final currentStatus = _order!['status'] as String? ?? 'received';
+
     return Scaffold(
+      backgroundColor: AppColors.bgLight,
       appBar: AppBar(
-        title: Text(orderId),
+        title: Text('Order: ${_order!['orderId'] ?? widget.orderId}'),
         actions: [
           IconButton(
               icon: const Icon(Icons.edit_outlined),
@@ -29,31 +105,24 @@ class OrderDetailScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Status Timeline
-            _statusTimeline(),
+            _statusTimeline(currentStatus),
             const SizedBox(height: 16),
 
             // Customer card
             _infoCard('Customer Details', [
-              _infoRow(Icons.person_outline,
-                  'Priya Sharma', AppColors.accent2),
-              _infoRow(Icons.phone_outlined,
-                  '+91 98765 43210', AppColors.green),
-              _infoRow(Icons.location_on_outlined,
-                  'Koramangala 4th Block, Bengaluru',
-                  AppColors.orange),
+              _infoRow(Icons.person_outline, customerName, AppColors.accent2),
+              if (customerMobile.isNotEmpty)
+                _infoRow(Icons.phone_outlined, '+91 $customerMobile', AppColors.green),
+              _infoRow(Icons.location_on_outlined, customerAddress, AppColors.orange),
             ]),
             const SizedBox(height: 12),
 
             // Order info
             _infoCard('Order Details', [
-              _infoRow(Icons.local_laundry_service_outlined,
-                  'Service: Wash + Iron', AppColors.accent),
-              _infoRow(Icons.category_outlined,
-                  'Type: Pickup', AppColors.accent2),
-              _infoRow(Icons.calendar_today_outlined,
-                  'Created: 05 May 2026', AppColors.textSub),
-              _infoRow(Icons.event_available_outlined,
-                  'Expected: 07 May 2026', AppColors.textSub),
+              _infoRow(Icons.local_laundry_service_outlined, 'Service: $serviceType', AppColors.accent),
+              _infoRow(Icons.category_outlined, 'Type: ${orderType.toUpperCase()}', AppColors.accent2),
+              _infoRow(Icons.calendar_today_outlined, 'Created: $createdDate', AppColors.textSub),
+              _infoRow(Icons.event_available_outlined, 'Expected: $expectedDate', AppColors.textSub),
             ]),
             const SizedBox(height: 12),
 
@@ -77,13 +146,17 @@ class OrderDetailScreen extends StatelessWidget {
                   ),
                   const Divider(height: 1),
                   _garmentTableHeader(),
-                  _garmentRow('Shirt', 2, 40),
-                  _garmentRow('Trouser', 1, 50),
-                  _garmentRow('Saree', 2, 80),
+                  ...garments.map((g) {
+                    final name = g['name'] as String? ?? 'Item';
+                    final qty = g['qty'] as num? ?? 1;
+                    final rate = g['rate'] as num? ?? 40;
+                    return _garmentRow(name, qty.toInt(), rate.toInt());
+                  }).toList(),
                   const Divider(height: 1),
-                  _totalRow('Subtotal', '₹290'),
-                  _totalRow('Delivery Charge', '₹40'),
-                  _totalRow('Total', '₹330', bold: true),
+                  _totalRow('Subtotal', '₹$subtotal'),
+                  if (deliveryCharge > 0)
+                    _totalRow('Delivery Charge', '₹$deliveryCharge'),
+                  _totalRow('Total', '₹$totalAmount', bold: true),
                 ],
               ),
             ),
@@ -93,19 +166,25 @@ class OrderDetailScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.green.withOpacity(0.08),
+                color: isPaid
+                    ? AppColors.green.withOpacity(0.08)
+                    : AppColors.red.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                    color: AppColors.green.withOpacity(0.3)),
+                    color: isPaid
+                        ? AppColors.green.withOpacity(0.3)
+                        : AppColors.red.withOpacity(0.3)),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.check_circle,
-                      color: AppColors.green),
-                  SizedBox(width: 10),
-                  Text('Payment: PAID — ₹330',
+                  Icon(
+                      isPaid ? Icons.check_circle : Icons.error_outline,
+                      color: isPaid ? AppColors.green : AppColors.red),
+                  const SizedBox(width: 10),
+                  Text(
+                      isPaid ? 'Payment: PAID — ₹$totalAmount' : 'Payment: UNPAID — ₹$totalAmount',
                       style: TextStyle(
-                          color: AppColors.green,
+                          color: isPaid ? AppColors.green : AppColors.red,
                           fontWeight: FontWeight.bold)),
                 ],
               ),
@@ -115,37 +194,53 @@ class OrderDetailScreen extends StatelessWidget {
             // Actions
             AppButton(
               label: 'Update Status',
-              onTap: () =>
-                  context.push('/orders/$orderId/status'),
+              onTap: () async {
+                await context.push('/orders/${widget.orderId}/status');
+                _loadOrder(); // Reload order after status update
+              },
             ),
             const SizedBox(height: 10),
             AppButton(
               label: 'View Invoice',
               onTap: () =>
-                  context.push('/invoices/$orderId'),
+                  context.push('/invoices/${widget.orderId}'),
               color: AppColors.accent2,
             ),
-            const SizedBox(height: 10),
-            AppButton(
-              label: 'Collect Payment',
-              onTap: () =>
-                  context.push('/collect-payment'),
-              color: AppColors.gold,
-            ),
+            if (!isPaid) ...[
+              const SizedBox(height: 10),
+              AppButton(
+                label: 'Collect Payment',
+                onTap: () async {
+                  await context.push('/collect-payment');
+                  _loadOrder();
+                },
+                color: AppColors.gold,
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _statusTimeline() {
+  Widget _statusTimeline(String status) {
+    final statusIdxMap = {
+      'received': 0,
+      'washing': 1,
+      'ironing': 2,
+      'ready': 3,
+      'delivered': 4,
+    };
+    final currentIdx = statusIdxMap[status.toLowerCase()] ?? 0;
+
     final steps = [
-      {'label': 'Received', 'done': true},
-      {'label': 'Washing', 'done': true},
-      {'label': 'Ironing', 'done': false},
-      {'label': 'Ready', 'done': false},
-      {'label': 'Delivered', 'done': false},
+      {'label': 'Received', 'val': 0},
+      {'label': 'Washing', 'val': 1},
+      {'label': 'Ironing', 'val': 2},
+      {'label': 'Ready', 'val': 3},
+      {'label': 'Delivered', 'val': 4},
     ];
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -164,7 +259,8 @@ class OrderDetailScreen extends StatelessWidget {
             children: steps.asMap().entries.map((e) {
               final i = e.key;
               final step = e.value;
-              final done = step['done'] as bool;
+              final val = step['val'] as int;
+              final done = val <= currentIdx;
               final isLast = i == steps.length - 1;
               return Expanded(
                 child: Row(

@@ -162,7 +162,7 @@ class _OtpScreenState extends State<OtpScreen> {
 
             // Title
             Text(
-              isOwner ? 'Owner Verification' : 'Customer Verification',
+              isOwner ? 'Owner Login' : 'Customer Login',
               style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,

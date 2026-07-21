@@ -3,3 +3,4 @@ pytest
 pytest-html
 webdriver-manager
 openpyxl
+requests

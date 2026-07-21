@@ -1,8 +1,9 @@
 // src/controllers/auth.controller.js
 const User          = require('../models/User');
 const generateToken = require('../utils/generateToken');
+const axios         = require('axios'); // npm install axios
 
-// ── Send OTP ────────────────────────────────────────────
+// ── Send OTP (Real SMS via Fast2SMS) ────────────────────
 exports.sendOtp = async (req, res) => {
   try {
     const { mobile, role } = req.body;
@@ -14,29 +15,62 @@ exports.sendOtp = async (req, res) => {
       });
     }
 
+    // Clean mobile — digits only, strip +91
+    const cleanMobile = mobile.replace(/\D/g, '').replace(/^91/, '');
+
+    if (cleanMobile.length !== 10) {
+      return res.status(400).json({
+        success: false,
+        error: 'Enter a valid 10-digit mobile number',
+      });
+    }
+
     // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000)
-      .toString();
+    const otp      = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 min
 
-    // Save OTP to user (create if new)
+    // Save OTP to DB (create user if new)
     await User.findOneAndUpdate(
-      { mobile },
+      { mobile: cleanMobile },
       { otp, otpExpiry, role: role || 'customer' },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );
 
-    // TODO: Send real SMS using Twilio or MSG91
-    // For development, log the OTP
-    console.log(`📱 OTP for ${mobile}: ${otp}`);
+    // ── Send real SMS via Fast2SMS ──────────────────────
+    const smsRes = await axios.post(
+      'https://www.fast2sms.com/dev/bulkV2',
+      {
+        variables_values: otp,
+        route:            'otp',
+        numbers:          cleanMobile,
+      },
+      {
+        headers: {
+          authorization:  process.env.FAST2SMS_API_KEY,
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000,
+      }
+    );
 
+    console.log(`📱 Fast2SMS response for ${cleanMobile}:`, smsRes.data);
+
+    if (!smsRes.data.return) {
+      console.error('Fast2SMS error:', smsRes.data);
+      return res.status(500).json({
+        success: false,
+        error:   'SMS sending failed. Check FAST2SMS_API_KEY in Render env vars.',
+      });
+    }
+
+    // ── Success — DO NOT return OTP in response ─────────
     res.json({
       success: true,
-      message: 'OTP sent successfully',
-      // Remove otp from production response!
-      otp: otp,
+      message: `OTP sent to ${cleanMobile}`,
     });
+
   } catch (err) {
+    console.error('sendOtp error:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 };
@@ -53,7 +87,9 @@ exports.verifyOtp = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ mobile });
+    const cleanMobile = mobile.replace(/\D/g, '').replace(/^91/, '');
+
+    const user = await User.findOne({ mobile: cleanMobile });
 
     if (!user) {
       return res.status(404).json({
@@ -62,15 +98,13 @@ exports.verifyOtp = async (req, res) => {
       });
     }
 
-    // Check OTP
     if (user.otp !== otp) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid OTP',
+        error: 'Invalid OTP. Please try again.',
       });
     }
 
-    // Check OTP expiry
     if (user.otpExpiry < new Date()) {
       return res.status(400).json({
         success: false,
@@ -79,7 +113,7 @@ exports.verifyOtp = async (req, res) => {
     }
 
     // Clear OTP after successful verification
-    user.otp = undefined;
+    user.otp       = undefined;
     user.otpExpiry = undefined;
     if (!user.name || user.name === 'New User') {
       user.name = 'User';
@@ -120,12 +154,12 @@ exports.getProfile = async (req, res) => {
 // ── Update Profile ──────────────────────────────────────
 exports.updateProfile = async (req, res) => {
   try {
-    const updates = [
+    const allowed = [
       'name', 'shopName', 'address', 'city',
-      'upiId', 'gstin', 'fcmToken'
+      'upiId', 'gstin', 'fcmToken',
     ];
     const updateData = {};
-    updates.forEach((field) => {
+    allowed.forEach((field) => {
       if (req.body[field] !== undefined) {
         updateData[field] = req.body[field];
       }

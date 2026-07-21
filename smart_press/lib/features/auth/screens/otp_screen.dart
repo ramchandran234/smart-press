@@ -22,11 +22,10 @@ class _OtpScreenState extends State<OtpScreen> {
   final List<FocusNode> _focusNodes =
       List.generate(6, (_) => FocusNode());
 
-  int _seconds   = 60;
+  int _seconds      = 60;
   Timer? _timer;
-  bool _otpSent  = false;
-  bool _loading  = false;
-  String _devOtp = '';
+  bool _otpSent     = false;
+  bool _loading     = false;
   bool _serverReady = false;
 
   static const String _base = AppConfig.baseUrl;
@@ -37,17 +36,13 @@ class _OtpScreenState extends State<OtpScreen> {
     _wakeUpServer();
   }
 
-  // ── Wake up Render server ──────────────────────────
   Future<void> _wakeUpServer() async {
     try {
-      print('⏳ Waking up server...');
       await http.get(
         Uri.parse('https://smart-press-backend.onrender.com'),
       ).timeout(const Duration(seconds: 60));
       if (mounted) setState(() => _serverReady = true);
-      print('✅ Server is awake!');
     } catch (e) {
-      print('⚠️ Server wake up: $e');
       if (mounted) setState(() => _serverReady = true);
     }
   }
@@ -89,24 +84,18 @@ class _OtpScreenState extends State<OtpScreen> {
     Map<String, dynamic> body,
   ) async {
     try {
-      print('📡 Calling: $_base$endpoint');
-      print('📦 Body: ${jsonEncode(body)}');
       final response = await http
           .post(
             Uri.parse('$_base$endpoint'),
             headers: {
               'Content-Type': 'application/json',
-              'Accept': 'application/json',
+              'Accept':       'application/json',
             },
             body: jsonEncode(body),
           )
           .timeout(const Duration(seconds: 60));
-      print('📨 Status: ${response.statusCode}');
-      print('📨 Body: ${response.body}');
-      final data = jsonDecode(response.body);
-      return data as Map<String, dynamic>;
+      return jsonDecode(response.body) as Map<String, dynamic>;
     } catch (e) {
-      print('❌ API Error: $e');
       if (e.toString().contains('TimeoutException') ||
           e.toString().contains('timed out')) {
         return {
@@ -114,10 +103,7 @@ class _OtpScreenState extends State<OtpScreen> {
           'error': 'Server is waking up. Please try again in 10 seconds.',
         };
       }
-      return {
-        'success': false,
-        'error': e.toString(),
-      };
+      return {'success': false, 'error': e.toString()};
     }
   }
 
@@ -139,12 +125,9 @@ class _OtpScreenState extends State<OtpScreen> {
     );
     setState(() => _loading = false);
     if (result['success'] == true) {
-      setState(() {
-        _otpSent = true;
-        _devOtp  = result['otp']?.toString() ?? '';
-      });
+      setState(() => _otpSent = true);
       _startTimer();
-      _snack('✅ OTP sent to $mobile', AppColors.green);
+      _snack('OTP sent to $mobile', AppColors.green);
     } else {
       _snack(result['error'] ?? 'Failed to send OTP', AppColors.red);
     }
@@ -167,7 +150,7 @@ class _OtpScreenState extends State<OtpScreen> {
     );
     setState(() => _loading = false);
     if (result['success'] == true) {
-      _snack('✅ Login successful!', AppColors.green);
+      _snack('Login successful!', AppColors.green);
       await Future.delayed(const Duration(milliseconds: 500));
       if (!mounted) return;
       if (widget.role == 'owner') {
@@ -182,10 +165,7 @@ class _OtpScreenState extends State<OtpScreen> {
 
   void _resendOtp() {
     for (var c in _otpControllers) c.clear();
-    setState(() {
-      _otpSent = false;
-      _devOtp  = '';
-    });
+    setState(() => _otpSent = false);
     _sendOtp();
   }
 
@@ -214,7 +194,7 @@ class _OtpScreenState extends State<OtpScreen> {
           children: [
             const SizedBox(height: 20),
 
-            // ── Server status banner ──────────────────
+            // Server status banner
             if (!_serverReady)
               Container(
                 width: double.infinity,
@@ -223,35 +203,26 @@ class _OtpScreenState extends State<OtpScreen> {
                 decoration: BoxDecoration(
                   color: AppColors.gold.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                      color: AppColors.gold.withOpacity(0.4)),
+                  border: Border.all(color: AppColors.gold.withOpacity(0.4)),
                 ),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     SizedBox(
-                      width: 14,
-                      height: 14,
+                      width: 14, height: 14,
                       child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.gold,
-                      ),
+                          strokeWidth: 2, color: AppColors.gold),
                     ),
                     SizedBox(width: 10),
-                    Text(
-                      '⏳ Connecting to server...',
-                      style: TextStyle(
-                          color: AppColors.gold,
-                          fontSize: 12),
-                    ),
+                    Text('Connecting to server...',
+                        style: TextStyle(color: AppColors.gold, fontSize: 12)),
                   ],
                 ),
               ),
 
-            // ── Icon ──────────────────────────────────
+            // Icon
             Container(
-              width: 80,
-              height: 80,
+              width: 80, height: 80,
               decoration: BoxDecoration(
                 color: color.withOpacity(0.15),
                 shape: BoxShape.circle,
@@ -259,13 +230,12 @@ class _OtpScreenState extends State<OtpScreen> {
               ),
               child: Icon(
                 isOwner ? Icons.store : Icons.person,
-                size: 38,
-                color: color,
+                size: 38, color: color,
               ),
             ),
             const SizedBox(height: 16),
 
-            // ── Title ─────────────────────────────────
+            // Title
             Text(
               isOwner ? 'Owner Verification' : 'Customer Verification',
               style: const TextStyle(
@@ -275,10 +245,9 @@ class _OtpScreenState extends State<OtpScreen> {
             ),
             const SizedBox(height: 10),
 
-            // ── Role badge ────────────────────────────
+            // Role badge
             Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(20),
@@ -287,25 +256,20 @@ class _OtpScreenState extends State<OtpScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    isOwner ? Icons.store : Icons.person_outline,
-                    size: 14,
-                    color: color,
-                  ),
+                  Icon(isOwner ? Icons.store : Icons.person_outline,
+                      size: 14, color: color),
                   const SizedBox(width: 6),
                   Text(
                     isOwner ? 'Logging in as Owner' : 'Logging in as Customer',
                     style: TextStyle(
-                        fontSize: 12,
-                        color: color,
-                        fontWeight: FontWeight.w600),
+                        fontSize: 12, color: color, fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 30),
 
-            // ── Mobile input ──────────────────────────
+            // Mobile input label
             Align(
               alignment: Alignment.centerLeft,
               child: Text('Mobile Number',
@@ -315,6 +279,8 @@ class _OtpScreenState extends State<OtpScreen> {
                       fontSize: 13)),
             ),
             const SizedBox(height: 8),
+
+            // Mobile input
             TextField(
               key: const Key('mobile_field'),
               controller: _mobileController,
@@ -329,94 +295,46 @@ class _OtpScreenState extends State<OtpScreen> {
                 hintStyle: const TextStyle(color: AppColors.textSub),
                 filled: true,
                 fillColor: AppColors.accent2.withOpacity(0.15),
-                prefixIcon: const Icon(
-                    Icons.phone_outlined, color: AppColors.accent),
+                prefixIcon: const Icon(Icons.phone_outlined, color: AppColors.accent),
                 suffixIcon: _otpSent
                     ? IconButton(
                         icon: const Icon(Icons.edit_outlined,
                             color: AppColors.gold, size: 18),
                         onPressed: () => setState(() {
                           _otpSent = false;
-                          _devOtp  = '';
                           for (var c in _otpControllers) c.clear();
                         }),
                       )
                     : null,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: color),
-                ),
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: color)),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: color),
-                ),
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: color)),
                 disabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: color.withOpacity(0.3)),
-                ),
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: color.withOpacity(0.3))),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(
-                      color: AppColors.gold, width: 2),
-                ),
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.gold, width: 2)),
               ),
             ),
             const SizedBox(height: 20),
 
-            // ── Send OTP button ───────────────────────
+            // Send OTP button
             if (!_otpSent)
               _loading
                   ? CircularProgressIndicator(color: color)
                   : AppButton(
                       key: const Key('send_otp_btn'),
-                      label: 'Send OTP 📨',
+                      label: 'Send OTP',
                       color: color,
                       onTap: _sendOtp,
                     ),
 
-            // ── OTP section ───────────────────────────
+            // OTP section
             if (_otpSent) ...[
-              // Dev OTP box
-              if (_devOtp.isNotEmpty)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.gold.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: AppColors.gold.withOpacity(0.5)),
-                  ),
-                  child: Column(
-                    children: [
-                      const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.key,
-                              color: AppColors.gold, size: 16),
-                          SizedBox(width: 6),
-                          Text(
-                            'Development Mode — Your OTP',
-                            style: TextStyle(
-                                color: Colors.white60, fontSize: 11),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _devOtp,
-                        style: const TextStyle(
-                            color: AppColors.gold,
-                            fontSize: 34,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 10),
-                      ),
-                    ],
-                  ),
-                ),
-
-              // OTP label
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text('Enter 6-Digit OTP',
@@ -444,8 +362,7 @@ class _OtpScreenState extends State<OtpScreen> {
                         const SizedBox(width: 6),
                         Text('Resend in $_seconds s',
                             style: const TextStyle(
-                                color: AppColors.textSub,
-                                fontSize: 13)),
+                                color: AppColors.textSub, fontSize: 13)),
                       ],
                     )
                   : TextButton.icon(
@@ -453,8 +370,7 @@ class _OtpScreenState extends State<OtpScreen> {
                       icon: Icon(Icons.refresh, color: color, size: 16),
                       label: Text('Resend OTP',
                           style: TextStyle(
-                              color: color,
-                              fontWeight: FontWeight.bold)),
+                              color: color, fontWeight: FontWeight.bold)),
                     ),
               const SizedBox(height: 20),
 
@@ -463,7 +379,7 @@ class _OtpScreenState extends State<OtpScreen> {
                   ? CircularProgressIndicator(color: color)
                   : AppButton(
                       key: const Key('verify_otp_btn'),
-                      label: 'Verify & Continue ✅',
+                      label: 'Verify & Continue',
                       color: color,
                       onTap: _verifyOtp,
                     ),
@@ -477,8 +393,7 @@ class _OtpScreenState extends State<OtpScreen> {
 
   Widget _otpBox(int index, Color color) {
     return SizedBox(
-      width: 46,
-      height: 56,
+      width: 46, height: 56,
       child: TextField(
         key: Key('otp_digit_$index'),
         controller: _otpControllers[index],
@@ -495,18 +410,14 @@ class _OtpScreenState extends State<OtpScreen> {
           filled: true,
           fillColor: AppColors.accent2.withOpacity(0.2),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: color),
-          ),
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: color)),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: color),
-          ),
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: color)),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(
-                color: AppColors.gold, width: 2),
-          ),
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: AppColors.gold, width: 2)),
         ),
         onChanged: (v) {
           if (v.isNotEmpty && index < 5) {

@@ -25,6 +25,9 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🚀 Smart Press API running on port ${PORT}`);
 });
 
+// Disable Mongoose query buffering so API calls fail fast if database is disconnected instead of freezing
+mongoose.set('bufferCommands', false);
+
 // Connect to MongoDB asynchronously with 5s timeout
 mongoose.connect(MONGO, { serverSelectionTimeoutMS: 5000 })
   .then(() => {

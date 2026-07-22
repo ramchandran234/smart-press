@@ -30,7 +30,7 @@ app.use((req, res, next) => {
 app.use(express.urlencoded({ extended: true }));
 
 // ── Health check ────────────────────────────────────────
-app.get('/', (req, res) => {
+app.get(['/', '/health', '/api', '/api/health'], (req, res) => {
   res.json({
     status: '✅ Smart Press API Running',
     version: '1.0.0',

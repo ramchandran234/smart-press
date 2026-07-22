@@ -7,8 +7,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/services/order_service.dart';
 import '../../../shared/widgets/app_button.dart';
 
-// Web download import using universal conditional check or HTML fallback
-import 'dart:html' as html if (dart.library.io) 'dart:io';
+import '../../../core/services/download_stub.dart' if (dart.library.html) '../../../core/services/download_web.dart';
 
 class ExportScreen extends StatefulWidget {
   const ExportScreen({super.key});
@@ -34,24 +33,7 @@ class _ExportScreenState extends State<ExportScreen> {
   };
 
   void _triggerFileDownload(String content, String fileName, String mimeType) {
-    if (kIsWeb) {
-      try {
-        final bytes = utf8.encode(content);
-        final blob = html.Blob([bytes], mimeType);
-        final url = html.Url.createObjectUrlFromBlob(blob);
-        final anchor = html.document.createElement('a') as html.AnchorElement
-          ..href = url
-          ..download = fileName;
-        html.document.body?.children.add(anchor);
-        anchor.click();
-        anchor.remove();
-        html.Url.revokeObjectUrl(url);
-      } catch (e) {
-        debugPrint('Web download error: $e');
-      }
-    } else {
-      Share.share(content, subject: fileName);
-    }
+    downloadFileWeb(content, fileName, mimeType);
   }
 
   Future<void> _exportAndDownload() async {

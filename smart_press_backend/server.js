@@ -20,15 +20,16 @@ console.log(`🌍 Environment : ${process.env.NODE_ENV}`);
 console.log(`🔌 Port        : ${PORT}`);
 console.log(`🗄️  MongoDB     : ${MONGO ? '✅ set' : '❌ missing'}`);
 
-mongoose.connect(MONGO)
+// Start Express API server immediately so health checks & HTTP requests never block
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`\n🚀 Smart Press API running on port ${PORT}`);
+});
+
+// Connect to MongoDB asynchronously with 5s timeout
+mongoose.connect(MONGO, { serverSelectionTimeoutMS: 5000 })
   .then(() => {
     console.log(`✅ MongoDB Connected to: ${mongoose.connection.host}`);
-    // Important: listen on 0.0.0.0 for Railway
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`\n🚀 Smart Press API running on port ${PORT}`);
-    });
   })
   .catch((err) => {
     console.error('❌ MongoDB Error:', err.message);
-    process.exit(1);
   });

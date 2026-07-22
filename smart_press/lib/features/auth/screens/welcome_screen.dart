@@ -1,13 +1,30 @@
-// lib/features/auth/screens/welcome_screen.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
+import '../../../core/config/app_config.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../shared/widgets/app_button.dart';
-
 import '../../../shared/widgets/responsive_web_wrapper.dart';
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
+
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
+
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _warmUpBackend();
+  }
+
+  void _warmUpBackend() async {
+    try {
+      await http.get(Uri.parse(AppConfig.baseUrl.replaceAll('/api', ''))).timeout(const Duration(seconds: 45));
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {

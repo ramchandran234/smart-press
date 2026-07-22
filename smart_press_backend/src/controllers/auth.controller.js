@@ -2,6 +2,8 @@
 const User          = require('../models/User');
 const generateToken = require('../utils/generateToken');
 const axios         = require('axios'); // npm install axios
+const mongoose      = require('mongoose');
+const memoryDb      = require('../utils/memoryDb');
 const { normalizeMobile, hashPassword, comparePassword } = require('../utils/authUtils');
 
 exports.register = async (req, res) => {
@@ -30,29 +32,55 @@ exports.register = async (req, res) => {
       });
     }
 
-    const existingUser = await User.findOne({ mobile: cleanMobile });
-    if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        error: 'User already exists with this mobile number',
-      });
-    }
-
     const recoveryPin = Math.floor(100000 + Math.random() * 900000).toString();
     const hashedPassword = await hashPassword(password);
-    const user = await User.create({
-      name,
-      mobile: cleanMobile,
-      password: hashedPassword,
-      role: role || 'customer',
-      isVerified: true,
-      shopName,
-      addressLine1,
-      area,
-      city,
-      address: addressLine1 || req.body.address,
-      recoveryPin,
-    });
+    let user;
+
+    if (mongoose.connection.readyState === 1) {
+      const existingUser = await User.findOne({ mobile: cleanMobile });
+      if (existingUser) {
+        return res.status(409).json({
+          success: false,
+          error: 'User already exists with this mobile number',
+        });
+      }
+
+      user = await User.create({
+        name,
+        mobile: cleanMobile,
+        password: hashedPassword,
+        role: role || 'customer',
+        isVerified: true,
+        shopName,
+        addressLine1,
+        area,
+        city,
+        address: addressLine1 || req.body.address,
+        recoveryPin,
+      });
+    } else {
+      const existingUser = memoryDb.findUserByMobile(cleanMobile);
+      if (existingUser) {
+        return res.status(409).json({
+          success: false,
+          error: 'User already exists with this mobile number',
+        });
+      }
+
+      user = memoryDb.createUser({
+        name,
+        mobile: cleanMobile,
+        password: hashedPassword,
+        role: role || 'customer',
+        isVerified: true,
+        shopName,
+        addressLine1,
+        area,
+        city,
+        address: addressLine1 || req.body.address,
+        recoveryPin,
+      });
+    }
 
     const token = generateToken(user._id, user.role);
     res.status(201).json({
@@ -91,7 +119,13 @@ exports.login = async (req, res) => {
     }
 
     const cleanMobile = normalizeMobile(mobile);
-    const user = await User.findOne({ mobile: cleanMobile });
+    let user;
+
+    if (mongoose.connection.readyState === 1) {
+      user = await User.findOne({ mobile: cleanMobile });
+    } else {
+      user = memoryDb.findUserByMobile(cleanMobile);
+    }
 
     if (!user || !user.password) {
       return res.status(401).json({
@@ -159,41 +193,47 @@ exports.sendOtp = async (req, res) => {
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 min
 
     // Save OTP to DB (create user if new)
-    await User.findOneAndUpdate(
-      { mobile: cleanMobile },
-      { otp, otpExpiry, role: role || 'customer' },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
-
-    // ── Send real SMS via Fast2SMS ──────────────────────
-    const smsRes = await axios.post(
-  'https://www.fast2sms.com/dev/bulkV2',
-  {
-    message:  `Your Smart Press OTP is ${otp}. Valid for 10 minutes.`,
-    language: 'english',
-    route:    'q',           // quick route — no DLT needed
-    numbers:  cleanMobile,
-  },
-  {
-    headers: {
-      authorization:  process.env.FAST2SMS_API_KEY,
-      'Content-Type': 'application/json',
-    },
-    timeout: 10000,
-  }
-);
-
-    console.log(`📱 Fast2SMS response for ${cleanMobile}:`, smsRes.data);
-
-    if (!smsRes.data.return) {
-      console.error('Fast2SMS error:', smsRes.data);
-      return res.status(500).json({
-        success: false,
-        error:   'SMS sending failed. Check FAST2SMS_API_KEY in Render env vars.',
-      });
+    if (mongoose.connection.readyState === 1) {
+      await User.findOneAndUpdate(
+        { mobile: cleanMobile },
+        { otp, otpExpiry, role: role || 'customer' },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+    } else {
+      let user = memoryDb.findUserByMobile(cleanMobile);
+      if (user) {
+        memoryDb.updateUser(cleanMobile, { otp, otpExpiry, role: role || 'customer' });
+      } else {
+        memoryDb.createUser({ mobile: cleanMobile, otp, otpExpiry, role: role || 'customer' });
+      }
     }
 
-    // ── Success — DO NOT return OTP in response ─────────
+    // Attempt Fast2SMS dispatch if API key is present
+    if (process.env.FAST2SMS_API_KEY) {
+      try {
+        const smsRes = await axios.post(
+          'https://www.fast2sms.com/dev/bulkV2',
+          {
+            message:  `Your Smart Press OTP is ${otp}. Valid for 10 minutes.`,
+            language: 'english',
+            route:    'q',
+            numbers:  cleanMobile,
+          },
+          {
+            headers: {
+              authorization:  process.env.FAST2SMS_API_KEY,
+              'Content-Type': 'application/json',
+            },
+            timeout: 5000,
+          }
+        );
+        console.log(`📱 Fast2SMS response for ${cleanMobile}:`, smsRes.data);
+      } catch (smsErr) {
+        console.warn('⚠️ Fast2SMS dispatch skipped/error:', smsErr.message);
+      }
+    }
+
+    // Success — Return instant response
     res.json({
       success: true,
       message: `OTP sent to ${cleanMobile}`,

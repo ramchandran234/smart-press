@@ -66,15 +66,19 @@ class HttpHelper {
             headers: await _headers(withAuth: withAuth),
             body: jsonEncode(body),
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 12));
       print('✅ Status → ${response.statusCode}');
       print('📩 Response → ${response.body}');
       return _parse(response);
     } catch (e) {
       print('❌ POST ERROR → $e');
-      if (attempt < 2 && (e.toString().contains('TimeoutException') || e.toString().contains('ClientException'))) {
+      if (attempt < 2 && (e.toString().contains('TimeoutException') || e.toString().contains('ClientException') || e.toString().contains('SocketException'))) {
         print('🔄 Retrying POST request to allow Render cold start...');
         return post(endpoint, body, withAuth: withAuth, attempt: attempt + 1);
+      }
+      final errStr = e.toString();
+      if (errStr.contains('SocketException') || errStr.contains('Connection refused') || errStr.contains('TimeoutException')) {
+        return {'success': false, 'error': 'Server warming up... Please tap login again in a few seconds.'};
       }
       return {'success': false, 'error': e.toString()};
     }
@@ -88,15 +92,19 @@ class HttpHelper {
             Uri.parse('$baseUrl$endpoint'),
             headers: await _headers(withAuth: true),
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 12));
       print('✅ Status → ${response.statusCode}');
       print('📩 Response → ${response.body}');
       return _parse(response);
     } catch (e) {
       print('❌ GET ERROR → $e');
-      if (attempt < 2 && (e.toString().contains('TimeoutException') || e.toString().contains('ClientException'))) {
+      if (attempt < 2 && (e.toString().contains('TimeoutException') || e.toString().contains('ClientException') || e.toString().contains('SocketException'))) {
         print('🔄 Retrying GET request to allow Render cold start...');
         return get(endpoint, attempt: attempt + 1);
+      }
+      final errStr = e.toString();
+      if (errStr.contains('SocketException') || errStr.contains('Connection refused') || errStr.contains('TimeoutException')) {
+        return {'success': false, 'error': 'Server warming up... Please try again in a few seconds.'};
       }
       return {'success': false, 'error': e.toString()};
     }

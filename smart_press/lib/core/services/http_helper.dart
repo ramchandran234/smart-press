@@ -55,9 +55,10 @@ class HttpHelper {
     String endpoint,
     Map<String, dynamic> body, {
     bool withAuth = false,
+    int attempt = 1,
   }) async {
     try {
-      print('🌐 POST → $baseUrl$endpoint');
+      print('🌐 POST (Attempt $attempt) → $baseUrl$endpoint');
       print('📦 Body → $body');
       final response = await http
           .post(
@@ -65,31 +66,38 @@ class HttpHelper {
             headers: await _headers(withAuth: withAuth),
             body: jsonEncode(body),
           )
-          .timeout(const Duration(seconds: 30));
+          .timeout(const Duration(seconds: 60));
       print('✅ Status → ${response.statusCode}');
       print('📩 Response → ${response.body}');
       return _parse(response);
     } catch (e) {
-      // ✅ Now prints REAL error
       print('❌ POST ERROR → $e');
+      if (attempt < 2 && (e.toString().contains('TimeoutException') || e.toString().contains('ClientException'))) {
+        print('🔄 Retrying POST request to allow Render cold start...');
+        return post(endpoint, body, withAuth: withAuth, attempt: attempt + 1);
+      }
       return {'success': false, 'error': e.toString()};
     }
   }
 
-  static Future<Map<String, dynamic>> get(String endpoint) async {
+  static Future<Map<String, dynamic>> get(String endpoint, {int attempt = 1}) async {
     try {
-      print('🌐 GET → $baseUrl$endpoint');
+      print('🌐 GET (Attempt $attempt) → $baseUrl$endpoint');
       final response = await http
           .get(
             Uri.parse('$baseUrl$endpoint'),
             headers: await _headers(withAuth: true),
           )
-          .timeout(const Duration(seconds: 30));
+          .timeout(const Duration(seconds: 60));
       print('✅ Status → ${response.statusCode}');
       print('📩 Response → ${response.body}');
       return _parse(response);
     } catch (e) {
       print('❌ GET ERROR → $e');
+      if (attempt < 2 && (e.toString().contains('TimeoutException') || e.toString().contains('ClientException'))) {
+        print('🔄 Retrying GET request to allow Render cold start...');
+        return get(endpoint, attempt: attempt + 1);
+      }
       return {'success': false, 'error': e.toString()};
     }
   }
@@ -106,7 +114,7 @@ class HttpHelper {
             headers: await _headers(withAuth: true),
             body: jsonEncode(body),
           )
-          .timeout(const Duration(seconds: 30));
+          .timeout(const Duration(seconds: 60));
       print('✅ Status → ${response.statusCode}');
       print('📩 Response → ${response.body}');
       return _parse(response);
@@ -124,7 +132,7 @@ class HttpHelper {
             Uri.parse('$baseUrl$endpoint'),
             headers: await _headers(withAuth: true),
           )
-          .timeout(const Duration(seconds: 30));
+          .timeout(const Duration(seconds: 60));
       print('✅ Status → ${response.statusCode}');
       print('📩 Response → ${response.body}');
       return _parse(response);

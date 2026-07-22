@@ -2,6 +2,8 @@
 // PPT Screen 3 — Owner Registration Screen
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
+import '../../../core/config/app_config.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../shared/widgets/app_button.dart';
@@ -24,6 +26,18 @@ class _OwnerRegisterScreenState extends State<OwnerRegisterScreen> {
   final _confirmPasswordController = TextEditingController();
   bool _acceptTerms = false;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _warmUpBackend();
+  }
+
+  void _warmUpBackend() async {
+    try {
+      await http.get(Uri.parse(AppConfig.baseUrl.replaceAll('/api', ''))).timeout(const Duration(seconds: 45));
+    } catch (_) {}
+  }
 
   @override
   void dispose() {

@@ -20,19 +20,17 @@ console.log(`🌍 Environment : ${process.env.NODE_ENV}`);
 console.log(`🔌 Port        : ${PORT}`);
 console.log(`🗄️  MongoDB     : ${MONGO ? '✅ set' : '❌ missing'}`);
 
-// Start Express API server immediately so health checks & HTTP requests never block
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n🚀 Smart Press API running on port ${PORT}`);
-});
-
-// Disable Mongoose query buffering so API calls fail fast if database is disconnected instead of freezing
-mongoose.set('bufferCommands', false);
-
-// Connect to MongoDB asynchronously with 5s timeout
+// Connect to MongoDB first so all data persists directly to MongoDB database
 mongoose.connect(MONGO, { serverSelectionTimeoutMS: 5000 })
   .then(() => {
     console.log(`✅ MongoDB Connected to: ${mongoose.connection.host}`);
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`\n🚀 Smart Press API running on port ${PORT}`);
+    });
   })
   .catch((err) => {
     console.error('❌ MongoDB Error:', err.message);
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`\n🚀 Smart Press API running on port ${PORT} (Database Offline)`);
+    });
   });

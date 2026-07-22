@@ -36,7 +36,7 @@ exports.register = async (req, res) => {
     const hashedPassword = await hashPassword(password);
     let user;
 
-    if (mongoose.connection.readyState === 1) {
+    try {
       const existingUser = await User.findOne({ mobile: cleanMobile });
       if (existingUser) {
         return res.status(409).json({
@@ -58,7 +58,8 @@ exports.register = async (req, res) => {
         address: addressLine1 || req.body.address,
         recoveryPin,
       });
-    } else {
+    } catch (dbErr) {
+      console.warn('⚠️ MongoDB write unavailable, using memoryDb fallback:', dbErr.message);
       const existingUser = memoryDb.findUserByMobile(cleanMobile);
       if (existingUser) {
         return res.status(409).json({

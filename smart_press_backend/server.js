@@ -3,34 +3,42 @@
 
 require('dotenv').config();
 
-if (!process.env.MONGO_URI) {
-  process.env.MONGO_URI  = 'mongodb://127.0.0.1:27017/smartpress';
+// Ensure required env vars have defaults
+if (!process.env.JWT_SECRET) {
   process.env.JWT_SECRET = 'smartpress_super_secret_2026';
-  process.env.NODE_ENV   = 'development';
+}
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'production';
 }
 
 const mongoose = require('mongoose');
 const app      = require('./src/app');
 
-// Railway sets PORT automatically
 const PORT  = process.env.PORT || 5000;
 const MONGO = process.env.MONGO_URI;
 
 console.log(`🌍 Environment : ${process.env.NODE_ENV}`);
 console.log(`🔌 Port        : ${PORT}`);
-console.log(`🗄️  MongoDB     : ${MONGO ? '✅ set' : '❌ missing'}`);
+console.log(`🗄️  MongoDB     : ${MONGO ? '✅ set' : '⚠️ missing – running without DB'}`);
 
-// Connect to MongoDB first so all data persists directly to MongoDB database
-mongoose.connect(MONGO, { serverSelectionTimeoutMS: 5000 })
-  .then(() => {
-    console.log(`✅ MongoDB Connected to: ${mongoose.connection.host}`);
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`\n🚀 Iron Buddy API running on port ${PORT}`);
-    });
+// ── ALWAYS start HTTP server FIRST so Render health check passes ──────────
+// This prevents "Exited with status 1" crash on Render when MongoDB is slow
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`\n🚀 Iron Buddy API running on port ${PORT}`);
+});
+
+// ── Connect to MongoDB in background AFTER server is already up ────────────
+if (MONGO) {
+  mongoose.connect(MONGO, {
+    serverSelectionTimeoutMS: 15000,
+    socketTimeoutMS: 45000,
   })
-  .catch((err) => {
-    console.error('❌ MongoDB Error:', err.message);
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`\n🚀 Iron Buddy API running on port ${PORT} (Database Offline)`);
+    .then(() => {
+      console.log(`✅ MongoDB Connected: ${mongoose.connection.host}`);
+    })
+    .catch((err) => {
+      console.error('⚠️ MongoDB connection failed (server still running):', err.message);
     });
-  });
+} else {
+  console.warn('⚠️ MONGO_URI not set — running in memoryDb fallback mode');
+}

@@ -6,6 +6,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/responsive_web_wrapper.dart';
 
 class OwnerRegisterScreen extends StatefulWidget {
   const OwnerRegisterScreen({super.key});
@@ -158,106 +159,108 @@ class _OwnerRegisterScreenState extends State<OwnerRegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Owner Registration')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.darkBg, AppColors.accent2],
+      body: ResponsiveWebWrapper(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [AppColors.darkBg, AppColors.accent2],
+                  ),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                borderRadius: BorderRadius.circular(14),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Create Your Account',
+                        style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.white)),
+                    SizedBox(height: 4),
+                    Text('Fill in your shop details to get started',
+                        style: TextStyle(
+                            color: Colors.white70, fontSize: 13)),
+                  ],
+                ),
               ),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 24),
+              AppTextField(
+                  key: const Key('reg_fullname'),
+                  label: 'Full Name',
+                  hint: 'Enter your full name',
+                  controller: _nameController),
+              const SizedBox(height: 16),
+              AppTextField(
+                  key: const Key('reg_shopname'),
+                  label: 'Shop Name',
+                  hint: 'Enter your shop name',
+                  controller: _shopNameController),
+              const SizedBox(height: 16),
+              AppTextField(
+                key: const Key('reg_mobile'),
+                label: 'Mobile Number',
+                hint: '+91 XXXXXXXXXX',
+                keyboardType: TextInputType.phone,
+                controller: _mobileController,
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                key: const Key('reg_password'),
+                label: 'Password',
+                hint: '••••••••',
+                obscure: true,
+                controller: _passwordController,
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                label: 'Confirm Password',
+                hint: '••••••••',
+                obscure: true,
+                controller: _confirmPasswordController,
+              ),
+              const SizedBox(height: 16),
+              // Terms checkbox
+              Row(
                 children: [
-                  Text('Create Your Account',
-                      style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.white)),
-                  SizedBox(height: 4),
-                  Text('Fill in your shop details to get started',
-                      style: TextStyle(
-                          color: Colors.white70, fontSize: 13)),
+                  Checkbox(
+                    value: _acceptTerms,
+                    activeColor: AppColors.accent,
+                    onChanged: (v) =>
+                        setState(() => _acceptTerms = v ?? false),
+                  ),
+                  const Expanded(
+                    child: Text(
+                      'I accept the Terms & Conditions',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                  ),
                 ],
               ),
-            ),
-            const SizedBox(height: 24),
-            AppTextField(
-                key: const Key('reg_fullname'),
-                label: 'Full Name',
-                hint: 'Enter your full name',
-                controller: _nameController),
-            const SizedBox(height: 16),
-            AppTextField(
-                key: const Key('reg_shopname'),
-                label: 'Shop Name',
-                hint: 'Enter your shop name',
-                controller: _shopNameController),
-            const SizedBox(height: 16),
-            AppTextField(
-              key: const Key('reg_mobile'),
-              label: 'Mobile Number',
-              hint: '+91 XXXXXXXXXX',
-              keyboardType: TextInputType.phone,
-              controller: _mobileController,
-            ),
-            const SizedBox(height: 16),
-            AppTextField(
-              key: const Key('reg_password'),
-              label: 'Password',
-              hint: '••••••••',
-              obscure: true,
-              controller: _passwordController,
-            ),
-            const SizedBox(height: 16),
-            AppTextField(
-              label: 'Confirm Password',
-              hint: '••••••••',
-              obscure: true,
-              controller: _confirmPasswordController,
-            ),
-            const SizedBox(height: 16),
-            // Terms checkbox
-            Row(
-              children: [
-                Checkbox(
-                  value: _acceptTerms,
-                  activeColor: AppColors.accent,
-                  onChanged: (v) =>
-                      setState(() => _acceptTerms = v ?? false),
-                ),
-                const Expanded(
-                  child: Text(
-                    'I accept the Terms & Conditions',
-                    style: TextStyle(fontSize: 13),
+              const SizedBox(height: 24),
+              AppButton(
+                key: const Key('reg_submit_btn'),
+                label: _isLoading ? 'Creating account...' : 'Register & Continue',
+                onTap: _isLoading ? () {} : () { _register(); },
+              ),
+              const SizedBox(height: 16),
+              Center(
+                child: TextButton(
+                  onPressed: () => context.go('/'),
+                  child: const Text(
+                    'Already have an account? Login',
+                    style: TextStyle(color: AppColors.accent2),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            AppButton(
-              key: const Key('reg_submit_btn'),
-              label: _isLoading ? 'Creating account...' : 'Register & Continue',
-              onTap: _isLoading ? () {} : () { _register(); },
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: TextButton(
-                onPressed: () => context.go('/'),
-                child: const Text(
-                  'Already have an account? Login',
-                  style: TextStyle(color: AppColors.accent2),
-                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

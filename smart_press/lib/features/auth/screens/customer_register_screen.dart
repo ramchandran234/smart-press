@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/responsive_web_wrapper.dart';
 
 class CustomerRegisterScreen extends StatefulWidget {
   const CustomerRegisterScreen({super.key});
@@ -178,8 +179,9 @@ class _CustomerRegisterScreenState
       appBar: AppBar(
         title: const Text('Customer Registration'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+      body: ResponsiveWebWrapper(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment:
               CrossAxisAlignment.start,
@@ -372,6 +374,7 @@ class _CustomerRegisterScreenState
             const SizedBox(height: 20),
           ],
         ),
+      ),
       ),
     );
   }

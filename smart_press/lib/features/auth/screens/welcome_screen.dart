@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../shared/widgets/app_button.dart';
 
+import '../../../shared/widgets/responsive_web_wrapper.dart';
+
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
@@ -12,9 +14,10 @@ class WelcomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.darkBg,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 28),
+        child: ResponsiveWebWrapper(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(
+                horizontal: 28),
           child: Column(
             crossAxisAlignment:
                 CrossAxisAlignment.center,
@@ -127,6 +130,7 @@ class WelcomeScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

@@ -9,7 +9,7 @@ class ResponsiveWebWrapper extends StatelessWidget {
   const ResponsiveWebWrapper({
     super.key,
     required this.child,
-    this.maxWidth = 540,
+    this.maxWidth = 560,
   });
 
   @override
@@ -21,30 +21,49 @@ class ResponsiveWebWrapper extends StatelessWidget {
       return child;
     }
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxWidth),
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.darkBg,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: AppColors.accent.withOpacity(0.2),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.4),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
+    return Material(
+      color: AppColors.bgLight,
+      child: Container(
+        decoration: const BoxDecoration(
+          color: AppColors.bgLight,
+          gradient: LinearGradient(
+            colors: [Color(0xFF070A1E), Color(0xFF0F1535), Color(0xFF141C48)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxWidth),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.darkBg,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: AppColors.accent.withOpacity(0.35),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.accent.withOpacity(0.15),
+                      blurRadius: 36,
+                      spreadRadius: 2,
+                      offset: const Offset(0, 8),
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.6),
+                      blurRadius: 30,
+                      offset: const Offset(0, 16),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: child,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: child,
+                ),
+              ),
             ),
           ),
         ),

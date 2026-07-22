@@ -8,7 +8,7 @@ const { normalizeMobile, hashPassword, comparePassword } = require('../utils/aut
 
 exports.register = async (req, res) => {
   try {
-    const { name, mobile, password, role, shopName, addressLine1, area, city } = req.body;
+    const { name, mobile, password, role, shopName, addressLine1, area, city, latitude, longitude, isOpen } = req.body;
 
     if (!name || !mobile || !password) {
       return res.status(400).json({
@@ -56,6 +56,9 @@ exports.register = async (req, res) => {
         area,
         city,
         address: addressLine1 || req.body.address,
+        latitude: latitude != null ? Number(latitude) : undefined,
+        longitude: longitude != null ? Number(longitude) : undefined,
+        isOpen: isOpen != null ? Boolean(isOpen) : true,
         recoveryPin,
       });
     } catch (dbErr) {
@@ -79,6 +82,9 @@ exports.register = async (req, res) => {
         area,
         city,
         address: addressLine1 || req.body.address,
+        latitude: latitude != null ? Number(latitude) : undefined,
+        longitude: longitude != null ? Number(longitude) : undefined,
+        isOpen: isOpen != null ? Boolean(isOpen) : true,
         recoveryPin,
       });
     }
@@ -98,6 +104,9 @@ exports.register = async (req, res) => {
         area: user.area,
         city: user.city,
         address: user.address,
+        latitude: user.latitude,
+        longitude: user.longitude,
+        isOpen: user.isOpen != null ? user.isOpen : true,
         isVerified: user.isVerified,
         recoveryPin: user.recoveryPin,
       },
@@ -110,28 +119,41 @@ exports.register = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
-    const { mobile, password } = req.body;
+    const input = req.body.username || req.body.mobile || req.body.name;
+    const { password, role } = req.body;
 
-    if (!mobile || !password) {
+    if (!input || !password) {
       return res.status(400).json({
         success: false,
-        error: 'Mobile and password are required',
+        error: 'Username and password are required',
       });
     }
 
-    const cleanMobile = normalizeMobile(mobile);
+    const cleanInput = input.trim();
+    const cleanMobile = normalizeMobile(cleanInput);
     let user;
 
     if (mongoose.connection.readyState === 1) {
-      user = await User.findOne({ mobile: cleanMobile });
+      user = await User.findOne({
+        $or: [
+          { mobile: cleanMobile },
+          { name: new RegExp(`^${cleanInput}$`, 'i') },
+          { shopName: new RegExp(`^${cleanInput}$`, 'i') },
+        ]
+      });
     } else {
-      user = memoryDb.findUserByMobile(cleanMobile);
+      user = memoryDb.users.find(u =>
+        u.mobile === cleanMobile ||
+        u.mobile === cleanInput ||
+        (u.name && u.name.toLowerCase() === cleanInput.toLowerCase()) ||
+        (u.shopName && u.shopName.toLowerCase() === cleanInput.toLowerCase())
+      );
     }
 
     if (!user || !user.password) {
       return res.status(401).json({
         success: false,
-        error: 'Invalid mobile number or password',
+        error: 'Invalid username or password',
       });
     }
 
@@ -139,7 +161,15 @@ exports.login = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        error: 'Invalid mobile number or password',
+        error: 'Invalid username or password',
+      });
+    }
+
+    if (role && user.role && user.role !== role) {
+      const targetRole = user.role === 'customer' ? 'Customer' : 'Owner';
+      return res.status(400).json({
+        success: false,
+        error: `This account is registered as ${targetRole}. Please use ${targetRole} Login.`,
       });
     }
 
@@ -158,6 +188,9 @@ exports.login = async (req, res) => {
         area: user.area,
         city: user.city,
         address: user.address,
+        latitude: user.latitude,
+        longitude: user.longitude,
+        isOpen: user.isOpen != null ? user.isOpen : true,
         isVerified: user.isVerified,
       },
     });
@@ -431,6 +464,9 @@ exports.verifyOtp = async (req, res) => {
         mobile:     user.mobile,
         role:       user.role,
         shopName:   user.shopName,
+        latitude:   user.latitude,
+        longitude:  user.longitude,
+        isOpen:     user.isOpen != null ? user.isOpen : true,
         isVerified: user.isVerified,
       },
     });
@@ -454,8 +490,8 @@ exports.getProfile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const allowed = [
-      'name', 'shopName', 'address', 'city',
-      'upiId', 'gstin', 'fcmToken',
+      'name', 'shopName', 'address', 'addressLine1', 'area', 'city',
+      'upiId', 'gstin', 'fcmToken', 'latitude', 'longitude', 'isOpen',
     ];
     const updateData = {};
     allowed.forEach((field) => {
@@ -464,13 +500,22 @@ exports.updateProfile = async (req, res) => {
       }
     });
 
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      updateData,
-      { new: true, runValidators: true }
-    ).select('-otp -otpExpiry -__v');
+    if (mongoose.connection.readyState === 1) {
+      const user = await User.findByIdAndUpdate(
+        req.user.id,
+        updateData,
+        { new: true, runValidators: true }
+      ).select('-otp -otpExpiry -__v');
+      return res.json({ success: true, user });
+    }
 
-    res.json({ success: true, user });
+    // In-memory fallback
+    const user = memoryDb.findUserById(req.user.id);
+    if (user) {
+      Object.assign(user, updateData, { updatedAt: new Date() });
+      return res.json({ success: true, user });
+    }
+    res.status(404).json({ success: false, error: 'User not found' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -479,8 +524,14 @@ exports.updateProfile = async (req, res) => {
 // Retrieve all vendors (shops)
 exports.getAllVendors = async (req, res) => {
   try {
-    const vendors = await User.find({ role: 'owner' })
-      .select('name shopName address city mobile gstin upiId');
+    if (mongoose.connection.readyState === 1) {
+      const vendors = await User.find({ role: 'owner' })
+        .select('name shopName address area city mobile gstin upiId latitude longitude isOpen');
+      return res.json({ success: true, vendors });
+    }
+
+    // In-memory fallback
+    const vendors = memoryDb.users.filter(u => u.role === 'owner');
     res.json({ success: true, vendors });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/services/order_service.dart';
 
 class HomeDashboardScreen extends StatefulWidget {
@@ -19,14 +20,34 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
   double _todayRevenue = 0.0;
   List<dynamic> _recentOrders = [];
   bool _loading = true;
+  bool _isOpen = true;
+  bool _updatingStatus = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchDashboardData();
+  String _userName = 'Iron Buddy';
+
+  String _greeting() {
+    final h = DateTime.now().hour;
+    if (h >= 5  && h < 12) return 'Good Morning 🌅';
+    if (h >= 12 && h < 17) return 'Good Afternoon ☀️';
+    if (h >= 17 && h < 21) return 'Good Evening 🌆';
+    return 'Good Night 🌙';
   }
 
   Future<void> _fetchDashboardData() async {
+    try {
+      final profileRes = await AuthService.getProfile();
+      if (profileRes['success'] == true && profileRes['user'] != null) {
+        final u = profileRes['user'] as Map<String, dynamic>;
+        if (u['isOpen'] != null) {
+          _isOpen = u['isOpen'] as bool;
+        }
+        final name = u['shopName'] as String? ?? u['name'] as String?;
+        if (name != null && name.isNotEmpty) {
+          _userName = name;
+        }
+      }
+    } catch (_) {}
+
     try {
       final res = await OrderService.getOrders();
       if (res['success'] == true) {
@@ -78,6 +99,26 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
     }
   }
 
+  Future<void> _toggleShopStatus(bool val) async {
+    setState(() {
+      _updatingStatus = true;
+      _isOpen = val;
+    });
+    try {
+      final res = await AuthService.updateProfile({'isOpen': val});
+      if (res['success'] == true && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(val ? 'Shop is now OPEN for customers!' : 'Shop is now CLOSED!'),
+            backgroundColor: val ? AppColors.green : AppColors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _updatingStatus = false);
+  }
+
   Color _getStatusColor(String status) {
     switch (status) {
       case 'received': return AppColors.accent;
@@ -95,13 +136,13 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
       backgroundColor: AppColors.bgLight,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Column(
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Good Morning 👋',
-                style: TextStyle(fontSize: 13, color: Colors.white70)),
-            Text('Smart Press',
-                style: TextStyle(
+            Text(_greeting(),
+                style: const TextStyle(fontSize: 13, color: Colors.white70)),
+            Text(_userName,
+                style: const TextStyle(
                     fontSize: 18, fontWeight: FontWeight.bold)),
           ],
         ),
@@ -123,6 +164,53 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Shop Open / Closed Toggle Switch Banner
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: _isOpen ? AppColors.green.withOpacity(0.12) : AppColors.red.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _isOpen ? AppColors.green : AppColors.red),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _isOpen ? Icons.storefront : Icons.storefront_outlined,
+                      color: _isOpen ? AppColors.green : AppColors.red,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _isOpen ? 'Shop Status: OPEN' : 'Shop Status: CLOSED',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: _isOpen ? AppColors.green : AppColors.red,
+                            ),
+                          ),
+                          Text(
+                            _isOpen ? 'Visible to customers • Accepting orders' : 'Visible to customers • Orders paused',
+                            style: const TextStyle(fontSize: 11, color: AppColors.textSub),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      key: const Key('shop_status_switch'),
+                      value: _isOpen,
+                      activeColor: AppColors.green,
+                      inactiveThumbColor: AppColors.red,
+                      onChanged: _updatingStatus ? null : (v) => _toggleShopStatus(v),
+                    ),
+                  ],
+                ),
+              ),
+
               // KPI Cards Row
               Row(children: [
                 _kpiCard('Orders', '$_activeCount',
@@ -224,7 +312,7 @@ class _HomeDashboardScreenState extends State<HomeDashboardScreen> {
                       'Reports', AppColors.accent2,
                       '/reports/revenue'),
                   _actionTile(context, Icons.calendar_month,
-                      'Schedule', AppColors.darkBg, '/schedule'),
+                      'Schedule', const Color(0xFF00E5FF), '/schedule'),
                 ],
               ),
               const SizedBox(height: 20),

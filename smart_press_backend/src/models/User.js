@@ -32,6 +32,9 @@ const userSchema = new mongoose.Schema({
   gstin:      { type: String },
   upiId:      { type: String },
   qrImage:    { type: String },
+  latitude:     { type: Number },
+  longitude:    { type: Number },
+  isOpen:       { type: Boolean, default: true },
   isVerified: { type: Boolean, default: false },
   isActive:   { type: Boolean, default: true },
   // Push notifications

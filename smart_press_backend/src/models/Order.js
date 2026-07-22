@@ -67,6 +67,7 @@ const orderSchema = new mongoose.Schema({
   pickupAddress:   { type: String },
   deliveryAddress: { type: String },
   // Extra
+  distance: { type: Number }, // distance in km
   notes:  { type: String },
   qrCode: { type: String },
 }, {

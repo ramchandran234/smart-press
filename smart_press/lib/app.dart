@@ -9,7 +9,7 @@ class SmartPressApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Smart Press',
+      title: 'Iron Buddy',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.theme,
       routerConfig: appRouter,

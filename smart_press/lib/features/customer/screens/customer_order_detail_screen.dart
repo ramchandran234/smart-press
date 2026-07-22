@@ -81,15 +81,16 @@ class _CustomerOrderDetailScreenState extends State<CustomerOrderDetailScreen> {
 
     final status = _order!['status'] as String? ?? 'received';
     final color = _getStatusColor(status);
-    final shop = _order!['owner'] as Map<String, dynamic>?;
-    final shopName = shop != null ? shop['shopName'] as String? ?? shop['name'] as String? ?? 'Laundry Shop' : 'Laundry Shop';
-    final shopMobile = shop != null ? shop['mobile'] as String? ?? '' : '';
+    final rawOwner = _order!['owner'];
+    final shop = rawOwner is Map<String, dynamic> ? rawOwner : null;
+    final shopName = shop != null ? (shop['shopName'] ?? shop['name'] ?? 'Iron Buddy Express').toString() : 'Iron Buddy Express';
+    final shopMobile = shop != null ? (shop['mobile'] ?? '').toString() : '';
     
-    final shopAddressLine1 = shop != null ? shop['addressLine1'] as String? ?? shop['address'] as String? ?? '' : '';
-    final shopArea = shop != null ? shop['area'] as String? ?? '' : '';
-    final shopCity = shop != null ? shop['city'] as String? ?? '' : '';
+    final shopAddressLine1 = shop != null ? (shop['addressLine1'] ?? shop['address'] ?? '').toString() : '';
+    final shopArea = shop != null ? (shop['area'] ?? '').toString() : '';
+    final shopCity = shop != null ? (shop['city'] ?? '').toString() : '';
     final shopAddressList = [shopAddressLine1, shopArea, shopCity].where((s) => s.isNotEmpty).toList();
-    final shopAddress = shopAddressList.isNotEmpty ? shopAddressList.join(', ') : 'Not provided';
+    final shopAddress = shopAddressList.isNotEmpty ? shopAddressList.join(', ') : 'Location on Map';
 
     final garments = _order!['garments'] as List<dynamic>? ?? [];
     final subtotal = _order!['subtotal'] as num? ?? 0;

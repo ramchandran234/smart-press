@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/services/http_helper.dart';
 
 class CustomerSettingsScreen extends StatefulWidget {
@@ -29,13 +30,182 @@ class _CustomerSettingsScreenState
   Future<void> _loadUser() async {
     try {
       final u = await HttpHelper.getUser();
-      setState(() {
-        _user = u;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _user = u;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showSnack(String msg, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _showEditProfileModal() async {
+    final nameCtrl = TextEditingController(text: _user?['name'] as String? ?? '');
+    final mobileCtrl = TextEditingController(text: _user?['mobile'] as String? ?? '');
+    final addressCtrl = TextEditingController(text: _user?['address'] as String? ?? _user?['addressLine1'] as String? ?? '');
+    final cityCtrl = TextEditingController(text: _user?['city'] as String? ?? '');
+
+    bool isSaving = false;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.darkSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                top: 20,
+                left: 20,
+                right: 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.edit_note, color: AppColors.accent, size: 24),
+                      SizedBox(width: 8),
+                      Text(
+                        'Edit Profile',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: nameCtrl,
+                    style: const TextStyle(color: AppColors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Full Name',
+                      labelStyle: const TextStyle(color: AppColors.textSub),
+                      prefixIcon: const Icon(Icons.person_outline, color: AppColors.accent),
+                      filled: true,
+                      fillColor: AppColors.darkBg,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.accent)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: mobileCtrl,
+                    keyboardType: TextInputType.phone,
+                    style: const TextStyle(color: AppColors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Mobile Number',
+                      labelStyle: const TextStyle(color: AppColors.textSub),
+                      prefixIcon: const Icon(Icons.phone_outlined, color: AppColors.accent),
+                      filled: true,
+                      fillColor: AppColors.darkBg,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.accent)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: addressCtrl,
+                    style: const TextStyle(color: AppColors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Street Address',
+                      labelStyle: const TextStyle(color: AppColors.textSub),
+                      prefixIcon: const Icon(Icons.home_outlined, color: AppColors.accent),
+                      filled: true,
+                      fillColor: AppColors.darkBg,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.accent)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: cityCtrl,
+                    style: const TextStyle(color: AppColors.white),
+                    decoration: InputDecoration(
+                      labelText: 'City',
+                      labelStyle: const TextStyle(color: AppColors.textSub),
+                      prefixIcon: const Icon(Icons.location_city_outlined, color: AppColors.accent),
+                      filled: true,
+                      fillColor: AppColors.darkBg,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.accent)),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.accent,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: isSaving
+                          ? null
+                          : () async {
+                              setModalState(() => isSaving = true);
+                              final payload = {
+                                'name': nameCtrl.text.trim(),
+                                'mobile': mobileCtrl.text.trim(),
+                                'address': addressCtrl.text.trim(),
+                                'city': cityCtrl.text.trim(),
+                              };
+                              final res = await AuthService.updateProfile(payload);
+                              setModalState(() => isSaving = false);
+                              if (res['success'] == true) {
+                                final updatedUser = Map<String, dynamic>.from(_user ?? {})..addAll(payload);
+                                await HttpHelper.saveUser(updatedUser);
+                                Navigator.pop(ctx);
+                                if (mounted) {
+                                  setState(() => _user = updatedUser);
+                                  _showSnack('Profile updated successfully!', AppColors.green);
+                                }
+                              } else {
+                                _showSnack(res['error'] ?? 'Failed to update profile', AppColors.red);
+                              }
+                            },
+                      child: isSaving
+                          ? const CircularProgressIndicator(color: AppColors.darkBg)
+                          : const Text('Save Profile Changes', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.darkBg, fontSize: 16)),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    nameCtrl.dispose();
+    mobileCtrl.dispose();
+    addressCtrl.dispose();
+    cityCtrl.dispose();
   }
 
   @override
@@ -52,12 +222,13 @@ class _CustomerSettingsScreenState
       backgroundColor: AppColors.bgLight,
       appBar: AppBar(
         backgroundColor: AppColors.darkBg,
-        title: const Text('My Profile & Settings'),
+        title: const Text('My Profile & Settings', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.bold)),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
           : SingleChildScrollView(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Profile header
                   Container(
@@ -69,8 +240,7 @@ class _CustomerSettingsScreenState
                           children: [
                             CircleAvatar(
                               radius: 36,
-                              backgroundColor:
-                                  AppColors.accent.withOpacity(0.2),
+                              backgroundColor: AppColors.accent.withOpacity(0.2),
                               child: Text(initial,
                                   style: const TextStyle(
                                       fontSize: 30,
@@ -98,37 +268,40 @@ class _CustomerSettingsScreenState
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(name,
                                   style: const TextStyle(
                                       color: AppColors.white,
                                       fontSize: 18,
-                                      fontWeight:
-                                          FontWeight.bold)),
+                                      fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 2),
                               Text('+91 $mobile',
                                   style: const TextStyle(
-                                      color: Colors.white70,
+                                      color: AppColors.textSub,
                                       fontSize: 13)),
                             ],
                           ),
                         ),
-                        TextButton(
-                            onPressed: () {},
-                            child: const Text('Edit',
-                                style: TextStyle(
-                                    color: AppColors.gold))),
+                        TextButton.icon(
+                          onPressed: _showEditProfileModal,
+                          icon: const Icon(Icons.edit_outlined, size: 16, color: AppColors.gold),
+                          label: const Text('Edit',
+                              style: TextStyle(
+                                  color: AppColors.gold,
+                                  fontWeight: FontWeight.bold)),
+                        ),
                       ],
                     ),
                   ),
 
-                  _sectionHeader('Saved Addresses'),
+                  _sectionHeader('SAVED ADDRESSES'),
                   _settingTile(
                     icon: Icons.home_outlined,
                     color: AppColors.accent,
                     title: 'Home Address',
                     subtitle: fullAddress,
+                    onTap: _showEditProfileModal,
                   ),
                   ListTile(
                     leading: Container(
@@ -138,17 +311,16 @@ class _CustomerSettingsScreenState
                         color: AppColors.green.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.add,
-                          color: AppColors.green),
+                      child: const Icon(Icons.add, color: AppColors.green),
                     ),
-                    title: const Text('Add New Address',
+                    title: const Text('Add / Update Address',
                         style: TextStyle(
                             color: AppColors.green,
                             fontWeight: FontWeight.w600)),
-                    onTap: () {},
+                    onTap: _showEditProfileModal,
                   ),
 
-                  _sectionHeader('Notifications'),
+                  _sectionHeader('NOTIFICATIONS'),
                   SwitchListTile(
                     secondary: Container(
                       width: 40,
@@ -162,14 +334,11 @@ class _CustomerSettingsScreenState
                           color: AppColors.accent),
                     ),
                     title: const Text('Push Notifications',
-                        style:
-                            TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle:
-                        const Text('Order alerts & offers'),
+                        style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.white)),
+                    subtitle: const Text('Order alerts & offers', style: TextStyle(color: AppColors.textSub, fontSize: 12)),
                     value: _notifications,
                     activeColor: AppColors.accent,
-                    onChanged: (v) =>
-                        setState(() => _notifications = v),
+                    onChanged: (v) => setState(() => _notifications = v),
                   ),
                   SwitchListTile(
                     secondary: Container(
@@ -179,21 +348,17 @@ class _CustomerSettingsScreenState
                         color: AppColors.green.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.sms_outlined,
-                          color: AppColors.green),
+                      child: const Icon(Icons.sms_outlined, color: AppColors.green),
                     ),
                     title: const Text('SMS Updates',
-                        style:
-                            TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle:
-                        const Text('Status change alerts'),
+                        style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.white)),
+                    subtitle: const Text('Status change alerts', style: TextStyle(color: AppColors.textSub, fontSize: 12)),
                     value: _orderUpdates,
                     activeColor: AppColors.green,
-                    onChanged: (v) =>
-                        setState(() => _orderUpdates = v),
+                    onChanged: (v) => setState(() => _orderUpdates = v),
                   ),
 
-                  _sectionHeader('Account'),
+                  _sectionHeader('ACCOUNT'),
                   ListTile(
                     leading: Container(
                       width: 40,
@@ -202,18 +367,13 @@ class _CustomerSettingsScreenState
                         color: AppColors.accent2.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.history,
-                          color: AppColors.accent2),
+                      child: const Icon(Icons.history, color: AppColors.accent2),
                     ),
                     title: const Text('Payment History',
-                        style:
-                            TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: const Text(
-                        'View all past transactions'),
-                    trailing: const Icon(Icons.chevron_right,
-                        color: AppColors.cardBorder),
-                    onTap: () => context
-                        .push('/customer/payment-history'),
+                        style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.white)),
+                    subtitle: const Text('View all past transactions', style: TextStyle(color: AppColors.textSub, fontSize: 12)),
+                    trailing: const Icon(Icons.chevron_right, color: AppColors.cardBorder),
+                    onTap: () => context.push('/customer/payment-history'),
                   ),
                   ListTile(
                     leading: Container(
@@ -223,23 +383,18 @@ class _CustomerSettingsScreenState
                         color: AppColors.textSub.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.help_outline,
-                          color: AppColors.textSub),
+                      child: const Icon(Icons.help_outline, color: AppColors.textSub),
                     ),
                     title: const Text('Help & Support',
-                        style:
-                            TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle:
-                        const Text('FAQs and contact us'),
-                    trailing: const Icon(Icons.chevron_right,
-                        color: AppColors.cardBorder),
+                        style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.white)),
+                    subtitle: const Text('FAQs and contact us', style: TextStyle(color: AppColors.textSub, fontSize: 12)),
+                    trailing: const Icon(Icons.chevron_right, color: AppColors.cardBorder),
                     onTap: () {},
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: SizedBox(
                       width: double.infinity,
                       height: 48,
@@ -248,18 +403,14 @@ class _CustomerSettingsScreenState
                           HttpHelper.clearAll();
                           context.go('/');
                         },
-                        icon: const Icon(Icons.logout,
-                            color: AppColors.red),
+                        icon: const Icon(Icons.logout, color: AppColors.red),
                         label: const Text('Logout',
                             style: TextStyle(
                                 color: AppColors.red,
                                 fontWeight: FontWeight.bold)),
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(
-                              color: AppColors.red),
-                          shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(12)),
+                          side: const BorderSide(color: AppColors.red),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
                     ),
@@ -274,13 +425,16 @@ class _CustomerSettingsScreenState
 
   Widget _sectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-      child: Text(title,
-          style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-              color: AppColors.textSub,
-              letterSpacing: 1)),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 6),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+          color: AppColors.accent,
+          letterSpacing: 1.4,
+        ),
+      ),
     );
   }
 
@@ -289,8 +443,10 @@ class _CustomerSettingsScreenState
     required Color color,
     required String title,
     required String subtitle,
+    VoidCallback? onTap,
   }) {
     return ListTile(
+      onTap: onTap,
       leading: Container(
         width: 40,
         height: 40,
@@ -300,15 +456,9 @@ class _CustomerSettingsScreenState
         ),
         child: Icon(icon, color: color, size: 20),
       ),
-      title: Text(title,
-          style:
-              const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text(subtitle,
-          style: const TextStyle(
-              fontSize: 12, color: AppColors.textSub)),
-      trailing: const Icon(Icons.chevron_right,
-          color: AppColors.cardBorder),
-      onTap: () {},
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.white)),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textSub)),
+      trailing: const Icon(Icons.chevron_right, color: AppColors.cardBorder),
     );
   }
 
@@ -317,18 +467,13 @@ class _CustomerSettingsScreenState
       currentIndex: index,
       selectedItemColor: AppColors.accent,
       unselectedItemColor: AppColors.textSub,
+      backgroundColor: AppColors.darkBg,
       type: BottomNavigationBarType.fixed,
       items: const [
-        BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined), label: 'Home'),
-        BottomNavigationBarItem(
-            icon: Icon(Icons.list_alt_outlined),
-            label: 'Orders'),
-        BottomNavigationBarItem(
-            icon: Icon(Icons.store_outlined),
-            label: 'Vendors'),
-        BottomNavigationBarItem(
-            icon: Icon(Icons.person), label: 'Profile'),
+        BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
+        BottomNavigationBarItem(icon: Icon(Icons.list_alt_outlined), label: 'Orders'),
+        BottomNavigationBarItem(icon: Icon(Icons.store_outlined), label: 'Vendors'),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
       ],
       onTap: (i) {
         const routes = [

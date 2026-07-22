@@ -26,7 +26,7 @@ exports.getAllCustomers = async (req, res) => {
     }
 
     // In-memory fallback
-    let list = memoryDb.customers;
+    let list = memoryDb.customers.filter(c => c.owner === req.user.id || c.owner?._id === req.user.id);
     if (search) {
       const s = search.toLowerCase();
       list = list.filter(c => (c.name && c.name.toLowerCase().includes(s)) || (c.mobile && c.mobile.includes(s)));

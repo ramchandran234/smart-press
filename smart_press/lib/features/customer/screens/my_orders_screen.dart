@@ -131,8 +131,9 @@ class _CustomerMyOrdersScreenState
         final o = list[i] as Map<String, dynamic>;
         final status = o['status'] as String? ?? 'received';
         final color = _getStatusColor(status);
-        final shop = o['owner'] as Map<String, dynamic>?;
-        final shopName = shop != null ? shop['shopName'] as String? ?? 'Smart Press' : 'Smart Press';
+        final rawOwner = o['owner'];
+        final shop = rawOwner is Map<String, dynamic> ? rawOwner : null;
+        final shopName = shop != null ? (shop['shopName'] ?? shop['name'] ?? 'Iron Buddy Express').toString() : 'Iron Buddy Express';
         final active = status != 'delivered' && status != 'cancelled';
         
         return Card(

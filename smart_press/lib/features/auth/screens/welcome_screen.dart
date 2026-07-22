@@ -1,10 +1,10 @@
+// lib/features/auth/screens/welcome_screen.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/config/app_config.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../shared/widgets/app_button.dart';
-import '../../../shared/widgets/responsive_web_wrapper.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -29,125 +29,136 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.darkBg,
+      backgroundColor: AppColors.bgLight,
       body: SafeArea(
-        child: ResponsiveWebWrapper(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 28),
-          child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 50),
-              // Logo
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color:
-                      AppColors.accent.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                  border: Border.all(
+        child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 50),
+
+                // Glowing Neon Logo Badge
+                Container(
+                  width: 108,
+                  height: 108,
+                  decoration: BoxDecoration(
+                    color: AppColors.darkSurface,
+                    shape: BoxShape.circle,
+                    border: Border.all(
                       color: AppColors.accent,
-                      width: 2.5),
+                      width: 2.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.accent.withOpacity(0.35),
+                        blurRadius: 28,
+                        spreadRadius: 4,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.iron, size: 54, color: AppColors.accent),
                 ),
-                child: const Icon(Icons.iron,
-                    size: 52, color: AppColors.accent),
-              ),
-              const SizedBox(height: 24),
-              const Text('Smart Press',
+                const SizedBox(height: 24),
+                const Text(
+                  'Iron Buddy',
                   style: TextStyle(
-                      fontSize: 38,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.white,
-                      letterSpacing: 1)),
-              const SizedBox(height: 8),
-              const Text(
-                  'Professional Laundry Management',
-                  style: TextStyle(
-                      fontSize: 14,
-                      color: AppColors.accent)),
-              const SizedBox(height: 6),
-              const Text(
-                  'Owner • Customer • All in one',
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSub)),
-              const SizedBox(height: 50),
-
-              // ── OWNER SECTION ─────────────────────
-              _sectionLabel('FOR SHOP OWNERS'),
-              const SizedBox(height: 10),
-              AppButton(
-                key: const Key('owner_login_btn'),
-                label: '🏪  Owner Login',
-                onTap: () =>
-                    context.push('/otp?role=owner'),
-                color: AppColors.accent,
-              ),
-
-              const SizedBox(height: 10),
-              AppButton(
-                key: const Key('owner_register_btn'),
-                label: '📝  New Owner Registration',
-                onTap: () => context.push('/register'),
-                color: AppColors.accent2,
-                outline: true,
-              ),
-              const SizedBox(height: 30),
-
-              // Divider
-              Row(children: [
-                const Expanded(
-                    child: Divider(
-                        color: AppColors.textSub)),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12),
-                  child: Text('OR',
-                      style: TextStyle(
-                          color: AppColors.textSub
-                              .withOpacity(0.7),
-                          fontSize: 12)),
+                    fontSize: 40,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.white,
+                    letterSpacing: 1.2,
+                  ),
                 ),
-                const Expanded(
-                    child: Divider(
-                        color: AppColors.textSub)),
-              ]),
-              const SizedBox(height: 30),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.accent.withOpacity(0.3)),
+                  ),
+                  child: const Text(
+                    '✨ Next-Gen Laundry Suite',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.accent,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Owner • Customer • Instant Geolocation',
+                  style: TextStyle(fontSize: 12, color: AppColors.textSub),
+                ),
+                const SizedBox(height: 48),
 
-              // ── CUSTOMER SECTION ──────────────────
-              _sectionLabel('FOR CUSTOMERS'),
-              const SizedBox(height: 10),
-              AppButton(
-                key: const Key('customer_login_btn'),
-                label: '👤  Customer Login',
-                onTap: () => context
-                    .push('/otp?role=customer'),
-                color: AppColors.green,
-              ),
+                // ── OWNER SECTION ─────────────────────
+                _sectionLabel('SHOP OWNER PORTAL'),
+                const SizedBox(height: 12),
+                AppButton(
+                  key: const Key('owner_login_btn'),
+                  label: '🏪  Owner Login',
+                  icon: Icons.storefront,
+                  onTap: () => context.push('/otp?role=owner'),
+                  color: AppColors.accent,
+                ),
+                const SizedBox(height: 12),
+                AppButton(
+                  key: const Key('owner_register_btn'),
+                  label: '📝  Register New Shop',
+                  icon: Icons.app_registration,
+                  onTap: () => context.push('/register'),
+                  color: AppColors.accent2,
+                  outline: true,
+                ),
+                const SizedBox(height: 32),
 
-              const SizedBox(height: 10),
-              AppButton(
-                key: const Key('customer_register_btn'),
-                label: '✨  New Customer Registration',
-                onTap: () =>
-                    context.push('/customer-register'),
-                color: AppColors.green,
-                outline: true,
-              ),
-              const SizedBox(height: 40),
+                // Glowing Divider
+                Row(
+                  children: [
+                    Expanded(child: Divider(color: AppColors.cardBorder.withOpacity(0.4))),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      child: Text(
+                        'OR',
+                        style: TextStyle(color: AppColors.textSub.withOpacity(0.8), fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Expanded(child: Divider(color: AppColors.cardBorder.withOpacity(0.4))),
+                  ],
+                ),
+                const SizedBox(height: 32),
 
-              const Text('v1.0  •  Terms & Privacy',
-                  style: TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textSub)),
-              const SizedBox(height: 20),
-            ],
+                // ── CUSTOMER SECTION ──────────────────
+                _sectionLabel('CUSTOMER PORTAL'),
+                const SizedBox(height: 12),
+                AppButton(
+                  key: const Key('customer_login_btn'),
+                  label: '👤  Customer Login',
+                  icon: Icons.person_outline,
+                  onTap: () => context.push('/otp?role=customer'),
+                  color: AppColors.green,
+                ),
+                const SizedBox(height: 12),
+                AppButton(
+                  key: const Key('customer_register_btn'),
+                  label: '✨  Create Customer Account',
+                  icon: Icons.person_add_alt_1_outlined,
+                  onTap: () => context.push('/customer-register'),
+                  color: AppColors.green,
+                  outline: true,
+                ),
+                const SizedBox(height: 48),
+
+                const Text(
+                  'Iron Buddy v2.0 • Powered by Smart Press',
+                  style: TextStyle(fontSize: 11, color: AppColors.textSub),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
           ),
-        ),
-      ),
       ),
     );
   }
@@ -155,12 +166,15 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   Widget _sectionLabel(String text) {
     return Align(
       alignment: Alignment.centerLeft,
-      child: Text(text,
-          style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: AppColors.textSub,
-              letterSpacing: 1.5)),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          color: AppColors.accent,
+          letterSpacing: 1.6,
+        ),
+      ),
     );
   }
 }

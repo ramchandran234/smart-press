@@ -25,12 +25,12 @@ mongoose.connect(MONGO, { serverSelectionTimeoutMS: 5000 })
   .then(() => {
     console.log(`✅ MongoDB Connected to: ${mongoose.connection.host}`);
     app.listen(PORT, '0.0.0.0', () => {
-      console.log(`\n🚀 Smart Press API running on port ${PORT}`);
+      console.log(`\n🚀 Iron Buddy API running on port ${PORT}`);
     });
   })
   .catch((err) => {
     console.error('❌ MongoDB Error:', err.message);
     app.listen(PORT, '0.0.0.0', () => {
-      console.log(`\n🚀 Smart Press API running on port ${PORT} (Database Offline)`);
+      console.log(`\n🚀 Iron Buddy API running on port ${PORT} (Database Offline)`);
     });
   });

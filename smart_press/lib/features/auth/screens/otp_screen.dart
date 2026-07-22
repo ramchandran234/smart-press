@@ -8,8 +8,6 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../shared/widgets/app_button.dart';
 
-import '../../../shared/widgets/responsive_web_wrapper.dart';
-
 class OtpScreen extends StatefulWidget {
   final String role;
   const OtpScreen({super.key, required this.role});
@@ -66,7 +64,7 @@ class _OtpScreenState extends State<OtpScreen> {
     final password = _passwordController.text.trim();
 
     if (mobile.isEmpty) {
-      _snack('Enter your mobile number', AppColors.red);
+      _snack('Enter your username', AppColors.red);
       return;
     }
     if (password.isEmpty) {
@@ -102,21 +100,20 @@ class _OtpScreenState extends State<OtpScreen> {
     final color   = isOwner ? AppColors.accent : AppColors.green;
 
     return Scaffold(
-      backgroundColor: AppColors.darkBg,
+      backgroundColor: AppColors.bgLight,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.white),
+          icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.white),
           onPressed: () => context.pop(),
         ),
         title: Text(
-          isOwner ? 'Owner Login' : 'Customer Login',
-          style: const TextStyle(color: AppColors.white),
+          isOwner ? 'Owner Access' : 'Customer Access',
+          style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.bold),
         ),
       ),
-      body: ResponsiveWebWrapper(
-        child: SingleChildScrollView(
+      body: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28),
           child: Column(
             children: [
@@ -129,9 +126,9 @@ class _OtpScreenState extends State<OtpScreen> {
                   padding: const EdgeInsets.all(10),
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: AppColors.gold.withAlpha((0.1 * 255).round()),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.gold.withAlpha((0.4 * 255).round())),
+                    color: AppColors.gold.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.gold.withOpacity(0.4)),
                   ),
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -142,32 +139,39 @@ class _OtpScreenState extends State<OtpScreen> {
                             strokeWidth: 2, color: AppColors.gold),
                       ),
                       SizedBox(width: 10),
-                      Text('Connecting to server...',
-                          style: TextStyle(color: AppColors.gold, fontSize: 12)),
+                      Text('Connecting to Iron Buddy server...',
+                          style: TextStyle(color: AppColors.gold, fontSize: 12, fontWeight: FontWeight.w500)),
                     ],
                   ),
                 ),
 
-              // Icon
+              // Glowing Icon Badge
               Container(
-                width: 80, height: 80,
+                width: 88, height: 88,
                 decoration: BoxDecoration(
-                  color: color.withAlpha((0.15 * 255).round()),
+                  color: AppColors.darkSurface,
                   shape: BoxShape.circle,
-                  border: Border.all(color: color, width: 2),
+                  border: Border.all(color: color, width: 2.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withOpacity(0.3),
+                      blurRadius: 24,
+                      spreadRadius: 2,
+                    ),
+                  ],
                 ),
                 child: Icon(
-                  isOwner ? Icons.store : Icons.person,
-                  size: 38, color: color,
+                  isOwner ? Icons.storefront : Icons.person,
+                  size: 42, color: color,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
 
               // Title
               Text(
-                isOwner ? 'Owner Login' : 'Customer Login',
+                isOwner ? 'Owner Sign In' : 'Customer Sign In',
                 style: const TextStyle(
-                    fontSize: 22,
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: AppColors.white),
               ),
@@ -177,31 +181,31 @@ class _OtpScreenState extends State<OtpScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 decoration: BoxDecoration(
-                  color: color.withAlpha((0.15 * 255).round()),
+                  color: color.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: color.withAlpha((0.4 * 255).round())),
+                  border: Border.all(color: color.withOpacity(0.35)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(isOwner ? Icons.store : Icons.person_outline,
+                    Icon(isOwner ? Icons.storefront : Icons.person_outline,
                         size: 14, color: color),
                     const SizedBox(width: 6),
                     Text(
-                      isOwner ? 'Logging in as Owner' : 'Logging in as Customer',
+                      isOwner ? 'Logging in as Shop Owner' : 'Logging in as Customer',
                       style: TextStyle(
                           fontSize: 12, color: color, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 32),
 
               Align(
                 alignment: Alignment.centerLeft,
-                child: Text('Mobile Number',
+                child: Text('Username / Mobile',
                     style: TextStyle(
-                        color: Colors.white.withAlpha((0.8 * 255).round()),
+                        color: Colors.white.withOpacity(0.85),
                         fontWeight: FontWeight.w600,
                         fontSize: 13)),
               ),
@@ -209,34 +213,34 @@ class _OtpScreenState extends State<OtpScreen> {
               TextField(
                 key: const Key('mobile_field'),
                 controller: _mobileController,
-                keyboardType: TextInputType.phone,
+                keyboardType: TextInputType.text,
                 style: const TextStyle(
                     color: AppColors.white,
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.w500),
                 decoration: InputDecoration(
-                  hintText: '+91 XXXXXXXXXX',
+                  hintText: 'Enter your username or mobile',
                   hintStyle: const TextStyle(color: AppColors.textSub),
                   filled: true,
-                  fillColor: AppColors.accent2.withAlpha((0.15 * 255).round()),
-                  prefixIcon: const Icon(Icons.phone_outlined, color: AppColors.accent),
+                  fillColor: AppColors.darkSurface,
+                  prefixIcon: Icon(Icons.person_outline, color: color),
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: color)),
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: AppColors.cardBorder)),
                   enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: color)),
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: AppColors.cardBorder)),
                   focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.gold, width: 2)),
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: color, width: 2)),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 18),
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text('Password',
                     style: TextStyle(
-                        color: Colors.white.withAlpha((0.8 * 255).round()),
+                        color: Colors.white.withOpacity(0.85),
                         fontWeight: FontWeight.w600,
                         fontSize: 13)),
               ),
@@ -247,35 +251,36 @@ class _OtpScreenState extends State<OtpScreen> {
                 obscureText: true,
                 style: const TextStyle(
                     color: AppColors.white,
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.w500),
                 decoration: InputDecoration(
                   hintText: 'Enter your password',
                   hintStyle: const TextStyle(color: AppColors.textSub),
                   filled: true,
-                  fillColor: AppColors.accent2.withAlpha((0.15 * 255).round()),
-                  prefixIcon: const Icon(Icons.lock_outline, color: AppColors.accent),
+                  fillColor: AppColors.darkSurface,
+                  prefixIcon: Icon(Icons.lock_outline, color: color),
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: color)),
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: AppColors.cardBorder)),
                   enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: color)),
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: AppColors.cardBorder)),
                   focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.gold, width: 2)),
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: color, width: 2)),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
               _loading
                   ? CircularProgressIndicator(color: color)
                   : AppButton(
                       key: const Key('login_btn'),
-                      label: 'Login',
+                      label: 'Sign In',
+                      icon: Icons.login,
                       color: color,
                       onTap: _login,
                     ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               AppButton(
                 label: 'Forgot Password?',
                 color: color,
@@ -289,8 +294,6 @@ class _OtpScreenState extends State<OtpScreen> {
             ],
           ),
         ),
-      ),
     );
   }
-
 }

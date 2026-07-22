@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../../../core/config/app_config.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../core/services/location_service.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/responsive_web_wrapper.dart';
@@ -29,7 +30,26 @@ class _CustomerRegisterScreenState
 
   bool _whatsappSame = true;
   bool _isLoading    = false;
+  bool _isDetectingLocation = false;
+  double? _latitude;
+  double? _longitude;
   String _preferredSlot = 'Evening (4PM–8PM)';
+
+  Future<void> _detectLiveLocation() async {
+    setState(() => _isDetectingLocation = true);
+    final loc = await LocationService.getCurrentLiveLocation();
+    if (mounted) {
+      setState(() {
+        _latitude = loc.latitude;
+        _longitude = loc.longitude;
+        _addressController.text = loc.addressLine1;
+        _areaController.text = loc.area;
+        _cityController.text = loc.city;
+        _isDetectingLocation = false;
+      });
+      _showSnack('Live location auto-filled!', AppColors.green);
+    }
+  }
 
   final _slots = [
     'Morning (9AM–12PM)',
@@ -77,12 +97,16 @@ class _CustomerRegisterScreenState
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: AppColors.darkSurface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: AppColors.cardBorder),
+          ),
           title: const Row(
             children: [
-              Icon(Icons.vpn_key, color: AppColors.accent2),
+              Icon(Icons.vpn_key, color: AppColors.accent),
               SizedBox(width: 10),
-              Text('Save Your Recovery PIN', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              Text('Save Your Recovery PIN', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.white)),
             ],
           ),
           content: Column(
@@ -91,16 +115,16 @@ class _CustomerRegisterScreenState
             children: [
               const Text(
                 'Please save this 6-digit PIN securely. You will need it to reset your password if you ever forget it.',
-                style: TextStyle(fontSize: 14, color: AppColors.textDark),
+                style: TextStyle(fontSize: 14, color: AppColors.textSub),
               ),
               const SizedBox(height: 20),
               Center(
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   decoration: BoxDecoration(
-                    color: AppColors.green.withOpacity(0.1),
+                    color: AppColors.gold.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.green.withOpacity(0.3)),
+                    border: Border.all(color: AppColors.gold),
                   ),
                   child: SelectableText(
                     recoveryPin,
@@ -108,7 +132,7 @@ class _CustomerRegisterScreenState
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 4,
-                      color: AppColors.green,
+                      color: AppColors.gold,
                     ),
                   ),
                 ),
@@ -121,7 +145,7 @@ class _CustomerRegisterScreenState
                 Navigator.of(context).pop();
                 context.go('/otp?role=customer');
               },
-              child: const Text('OK, Copied PIN', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.accent2)),
+              child: const Text('OK, Copied PIN', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.accent)),
             ),
           ],
         );
@@ -166,6 +190,8 @@ class _CustomerRegisterScreenState
         'addressLine1': _addressController.text.trim(),
         'area': _areaController.text.trim(),
         'city': city,
+        'latitude': _latitude ?? 12.9352,
+        'longitude': _longitude ?? 77.6245,
         'whatsapp': _whatsappSame ? mobile : _whatsappController.text.trim(),
         'preferredSlot': _preferredSlot,
       },
@@ -322,8 +348,23 @@ class _CustomerRegisterScreenState
             ],
             const SizedBox(height: 20),
 
-            // Address
-            _sectionLabel('Address'),
+            // Address & Location
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _sectionLabel('Address & Location'),
+                TextButton.icon(
+                  onPressed: _isDetectingLocation ? null : _detectLiveLocation,
+                  icon: _isDetectingLocation
+                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.green))
+                      : const Icon(Icons.my_location, size: 16, color: AppColors.green),
+                  label: Text(
+                    _isDetectingLocation ? 'Fetching...' : 'Detect Live Location',
+                    style: const TextStyle(color: AppColors.green, fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
             AppTextField(
               label: 'Address',

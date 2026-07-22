@@ -78,8 +78,9 @@ class _CustomerOrderProgressScreenState extends State<CustomerOrderProgressScree
     }
 
     final status = _order!['status'] as String? ?? 'received';
-    final shop = _order!['owner'] as Map<String, dynamic>?;
-    final shopName = shop != null ? shop['shopName'] as String? ?? shop['name'] as String? ?? 'Laundry Shop' : 'Laundry Shop';
+    final rawOwner = _order!['owner'];
+    final shop = rawOwner is Map<String, dynamic> ? rawOwner : null;
+    final shopName = shop != null ? (shop['shopName'] ?? shop['name'] ?? 'Iron Buddy Express').toString() : 'Iron Buddy Express';
     
     final garments = _order!['garments'] as List<dynamic>? ?? [];
     final garmentCount = garments.fold(0, (s, g) => s + (g['qty'] as num? ?? 1).toInt());

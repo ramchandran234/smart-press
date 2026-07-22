@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/http_helper.dart';
+import '../../../core/services/location_service.dart';
+import '../../../shared/widgets/responsive_web_wrapper.dart';
 
 class NearbyVendorsScreen extends StatefulWidget {
   const NearbyVendorsScreen({super.key});
@@ -29,6 +31,7 @@ class _NearbyVendorsScreenState
 
   Future<void> _fetchVendors() async {
     try {
+      final custLoc = await LocationService.getCurrentLiveLocation();
       final res = await HttpHelper.get('/auth/vendors');
       if (res['success'] == true) {
         final rawVendors = res['vendors'] as List<dynamic>;
@@ -37,7 +40,14 @@ class _NearbyVendorsScreenState
           final rv = rawVendors[i] as Map<String, dynamic>;
           final name = rv['shopName'] as String? ?? rv['name'] as String? ?? 'Laundry Shop';
           final initial = name.isNotEmpty ? name[0].toUpperCase() : 'L';
-          
+          final open = rv['isOpen'] != false;
+
+          double vLat = rv['latitude'] != null ? (rv['latitude'] as num).toDouble() : (12.9352 + (i * 0.08));
+          double vLng = rv['longitude'] != null ? (rv['longitude'] as num).toDouble() : (77.6245 + (i * 0.08));
+
+          double distanceValue = LocationService.calculateDistance(custLoc.latitude, custLoc.longitude, vLat, vLng);
+          bool isOutOfDistance = distanceValue > 10.0;
+
           final color = [
             AppColors.accent,
             AppColors.green,
@@ -49,11 +59,13 @@ class _NearbyVendorsScreenState
           mapped.add({
             '_id': rv['_id'],
             'name': name,
-            'area': rv['address'] as String? ?? 'Koramangala',
-            'distance': '${0.3 + (i * 0.4)} km',
+            'area': rv['area'] as String? ?? rv['address'] as String? ?? 'Koramangala',
+            'distance': '$distanceValue km',
+            'distanceValue': distanceValue,
+            'isOutOfDistance': isOutOfDistance,
             'rating': 4.5 + (i % 5) * 0.1,
             'reviews': 50 + (i * 12),
-            'open': true,
+            'open': open,
             'services': ['Wash', 'Iron', 'Dry Clean'],
             'minOrder': '₹100',
             'time': '24 hrs',
@@ -252,15 +264,36 @@ class _NearbyVendorsScreenState
     final open = v['open'] as bool;
     final color = v['color'] as Color;
     final rating = v['rating'] as double;
+    final isOutOfDistance = v['isOutOfDistance'] as bool? ?? false;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 14),
       elevation: 2,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: open
-            ? () => context.push('/customer/vendor-order?vendorId=${v['_id']}')
-            : null,
+        onTap: () {
+          if (!open) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Shop is currently closed'),
+                backgroundColor: AppColors.red,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+            return;
+          }
+          if (isOutOfDistance) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('out of distance try another shop'),
+                backgroundColor: AppColors.red,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+            return;
+          }
+          context.push('/customer/vendor-order?vendorId=${v['_id']}');
+        },
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(
@@ -339,14 +372,28 @@ class _NearbyVendorsScreenState
                           children: [
                             Icon(Icons.location_on,
                                 size: 12,
-                                color: AppColors.textSub),
+                                color: isOutOfDistance ? AppColors.red : AppColors.textSub),
                             const SizedBox(width: 3),
                             Text(
                                 '${v['area']}  •  ${v['distance']}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                     fontSize: 12,
-                                    color:
-                                        AppColors.textSub)),
+                                    fontWeight: isOutOfDistance ? FontWeight.bold : FontWeight.normal,
+                                    color: isOutOfDistance ? AppColors.red : AppColors.textSub)),
+                            if (isOutOfDistance) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.red.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text(
+                                  '> 10 km',
+                                  style: TextStyle(fontSize: 10, color: AppColors.red, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ],
@@ -431,7 +478,7 @@ class _NearbyVendorsScreenState
                     .toList(),
               ),
 
-              if (open) ...[
+              if (open && !isOutOfDistance) ...[
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -470,6 +517,26 @@ class _NearbyVendorsScreenState
                       ),
                     ),
                   ],
+                ),
+              ] else if (isOutOfDistance) ...[
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.red.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.red.withOpacity(0.3)),
+                  ),
+                  child: const Text(
+                    'out of distance try another shop',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.red),
+                  ),
                 ),
               ] else ...[
                 const SizedBox(height: 10),

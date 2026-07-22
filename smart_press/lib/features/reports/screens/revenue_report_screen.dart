@@ -1,141 +1,182 @@
 // lib/features/reports/screens/revenue_report_screen.dart
-// PPT Screen 37 — Revenue Report Screen
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/order_service.dart';
 
-class RevenueReportScreen extends StatelessWidget {
+class RevenueReportScreen extends StatefulWidget {
   const RevenueReportScreen({super.key});
 
   @override
+  State<RevenueReportScreen> createState() => _RevenueReportScreenState();
+}
+
+class _RevenueReportScreenState extends State<RevenueReportScreen> {
+  List<dynamic> _orders = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReportData();
+  }
+
+  Future<void> _loadReportData() async {
+    try {
+      final res = await OrderService.getOrders();
+      if (res['success'] == true && mounted) {
+        setState(() {
+          _orders = res['orders'] as List<dynamic>;
+          _isLoading = false;
+        });
+      } else {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    double totalRev = 0.0;
+    double walkInRev = 0.0;
+    double pickupRev = 0.0;
+    double deliveryRev = 0.0;
+
+    int washIronCount = 0;
+    int dryCleanCount = 0;
+    int ironOnlyCount = 0;
+
+    int deliveredCount = 0;
+    int cancelledCount = 0;
+
+    for (var o in _orders) {
+      final amt = (o['totalAmount'] as num? ?? 0).toDouble();
+      totalRev += amt;
+
+      final type = (o['orderType'] as String? ?? 'walk-in').toLowerCase();
+      if (type == 'pickup') {
+        pickupRev += amt;
+      } else if (type == 'delivery') {
+        deliveryRev += amt;
+      } else {
+        walkInRev += amt;
+      }
+
+      final st = (o['serviceType'] as String? ?? 'Wash + Iron').toLowerCase();
+      if (st.contains('dry')) {
+        dryCleanCount++;
+      } else if (st.contains('only') || st.contains('iron')) {
+        ironOnlyCount++;
+      } else {
+        washIronCount++;
+      }
+
+      final status = (o['status'] as String? ?? '').toLowerCase();
+      if (status == 'delivered') deliveredCount++;
+      if (status == 'cancelled') cancelledCount++;
+    }
+
+    final safeRev = totalRev > 0 ? totalRev : 1.0;
+    final walkInPct = walkInRev / safeRev;
+    final pickupPct = pickupRev / safeRev;
+    final deliveryPct = deliveryRev / safeRev;
+
+    final totalServiceOrders = washIronCount + dryCleanCount + ironOnlyCount;
+    final safeService = totalServiceOrders > 0 ? totalServiceOrders : 1;
+    final washPct = ((washIronCount / safeService) * 100).round();
+    final dryPct = ((dryCleanCount / safeService) * 100).round();
+    final ironPct = ((ironOnlyCount / safeService) * 100).round();
+
+    final totalOrdersCount = _orders.length;
+    final completionRate = totalOrdersCount > 0 ? ((deliveredCount / totalOrdersCount) * 100).round() : 0;
+    final cancellationRate = totalOrdersCount > 0 ? ((cancelledCount / totalOrdersCount) * 100).round() : 0;
+    final avgOrderVal = totalOrdersCount > 0 ? (totalRev / totalOrdersCount).round() : 0;
+
+    final channelData = [
+      {'label': 'Walk-in', 'amount': '₹${walkInRev.toStringAsFixed(0)}', 'pct': walkInPct, 'color': AppColors.accent},
+      {'label': 'Pickup', 'amount': '₹${pickupRev.toStringAsFixed(0)}', 'pct': pickupPct, 'color': AppColors.orange},
+      {'label': 'Delivery', 'amount': '₹${deliveryRev.toStringAsFixed(0)}', 'pct': deliveryPct, 'color': AppColors.green},
+    ];
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Revenue Report')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Channel breakdown
-            const Text('Revenue by Channel',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15)),
-            const SizedBox(height: 12),
-            ...[
-              {'label': 'Walk-in', 'amount': '₹14,200',
-                'pct': 0.37, 'color': AppColors.accent},
-              {'label': 'Pickup', 'amount': '₹15,800',
-                'pct': 0.41, 'color': AppColors.orange},
-              {'label': 'Delivery', 'amount': '₹8,450',
-                'pct': 0.22, 'color': AppColors.green},
-            ].map((c) => _channelBar(c)),
-            const SizedBox(height: 20),
-
-            // Service breakdown
-            const Text('Revenue by Service',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15)),
-            const SizedBox(height: 12),
-            Row(children: [
-              _serviceCard('Wash + Iron', '₹18,400',
-                  '48%', AppColors.accent),
-              const SizedBox(width: 10),
-              _serviceCard('Dry Clean', '₹12,600',
-                  '33%', AppColors.accent2),
-              const SizedBox(width: 10),
-              _serviceCard('Iron Only', '₹7,450',
-                  '19%', AppColors.orange),
-            ]),
-            const SizedBox(height: 20),
-
-            // Metrics
-            const Text('Performance Metrics',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15)),
-            const SizedBox(height: 12),
-            Row(children: [
-              _metricCard('Completion Rate',
-                  '94%', AppColors.green),
-              const SizedBox(width: 10),
-              _metricCard('Cancellation',
-                  '6%', AppColors.red),
-            ]),
-            const SizedBox(height: 10),
-            Row(children: [
-              _metricCard('Repeat Customers',
-                  '68%', AppColors.accent2),
-              const SizedBox(width: 10),
-              _metricCard('Avg Order Value',
-                  '₹271', AppColors.gold),
-            ]),
-            const SizedBox(height: 20),
-
-            // Peak hours
-            const Text('Peak Hours',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15)),
-            const SizedBox(height: 12),
-            Container(
+      backgroundColor: AppColors.bgLight,
+      appBar: AppBar(
+        backgroundColor: AppColors.darkBg,
+        title: const Text('Revenue Breakdown Report', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.bold)),
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
+          : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                    color: AppColors.cardBorder),
-              ),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  '9AM-11AM', '11AM-1PM',
-                  '4PM-6PM', '6PM-8PM'
-                ].asMap().entries.map((e) {
-                  final widths = [0.7, 0.5, 0.9, 0.6];
-                  return Padding(
-                    padding:
-                        const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 70,
-                          child: Text(e.value,
-                              style: const TextStyle(
-                                  fontSize: 11,
-                                  color:
-                                      AppColors.textSub)),
-                        ),
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius:
-                                BorderRadius.circular(6),
-                            child: LinearProgressIndicator(
-                              value: widths[e.key],
-                              backgroundColor:
-                                  AppColors.cardBorder,
-                              valueColor:
-                                  const AlwaysStoppedAnimation(
-                                      AppColors.accent),
-                              minHeight: 12,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                            '${(widths[e.key] * 100).toInt()}%',
-                            style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.accent)),
-                      ],
+                  // Channel breakdown
+                  const Text('Revenue by Channel (Live)',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: AppColors.white)),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.darkSurface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.cardBorder),
                     ),
-                  );
-                }).toList(),
+                    child: Column(
+                      children: channelData.map((c) => _channelBar(c)).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Service breakdown
+                  const Text('Revenue by Service Type',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: AppColors.white)),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    _serviceCard('Wash + Iron', '$washIronCount orders',
+                        '$washPct%', AppColors.accent),
+                    const SizedBox(width: 10),
+                    _serviceCard('Dry Clean', '$dryCleanCount orders',
+                        '$dryPct%', AppColors.accent2),
+                    const SizedBox(width: 10),
+                    _serviceCard('Iron Only', '$ironOnlyCount orders',
+                        '$ironPct%', AppColors.orange),
+                  ]),
+                  const SizedBox(height: 20),
+
+                  // Performance metrics
+                  const Text('Performance Metrics (Live DB)',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: AppColors.white)),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    _metricCard('Completion Rate',
+                        '$completionRate%', AppColors.green),
+                    const SizedBox(width: 10),
+                    _metricCard('Cancellation',
+                        '$cancellationRate%', AppColors.red),
+                  ]),
+                  const SizedBox(height: 10),
+                  Row(children: [
+                    _metricCard('Total Orders',
+                        '$totalOrdersCount', AppColors.accent2),
+                    const SizedBox(width: 10),
+                    _metricCard('Avg Order Value',
+                        '₹$avgOrderVal', AppColors.gold),
+                  ]),
+                  const SizedBox(height: 30),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -146,24 +187,25 @@ class RevenueReportScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment:
-                MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(c['label'] as String,
                   style: const TextStyle(
                       fontWeight: FontWeight.w600,
-                      fontSize: 13)),
+                      fontSize: 14,
+                      color: AppColors.white)),
               Text(c['amount'] as String,
                   style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 13)),
+                      fontSize: 14,
+                      color: AppColors.gold)),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
-              value: c['pct'] as double,
+              value: (c['pct'] as double).clamp(0.0, 1.0),
               backgroundColor: AppColors.cardBorder,
               valueColor: AlwaysStoppedAnimation(
                   c['color'] as Color),
@@ -175,15 +217,15 @@ class RevenueReportScreen extends StatelessWidget {
     );
   }
 
-  Widget _serviceCard(String label, String amount,
+  Widget _serviceCard(String label, String count,
       String pct, Color color) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.25)),
+          color: AppColors.darkSurface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withOpacity(0.4)),
         ),
         child: Column(
           children: [
@@ -192,10 +234,12 @@ class RevenueReportScreen extends StatelessWidget {
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: color)),
-            Text(amount,
+            const SizedBox(height: 2),
+            Text(count,
                 style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 12)),
+                    fontSize: 12,
+                    color: AppColors.white)),
             Text(label,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
@@ -213,14 +257,14 @@ class RevenueReportScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(12),
+          color: AppColors.darkSurface,
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(color: AppColors.cardBorder),
         ),
         child: Row(
           children: [
             Container(
-              width: 8,
+              width: 6,
               height: 36,
               decoration: BoxDecoration(
                 color: color,

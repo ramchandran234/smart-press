@@ -51,12 +51,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     if (_order == null) {
       return Scaffold(
         appBar: AppBar(title: Text('Order: ${widget.orderId}')),
-        body: const Center(child: Text('Order not found')),
+        body: const Center(child: Text('Order not found', style: TextStyle(color: AppColors.white))),
       );
     }
 
     final customer = _order!['customer'] as Map<String, dynamic>?;
-    final customerName = customer?['name'] as String? ?? 'Walk-in';
+    final customerName = customer?['name'] as String? ?? 'Walk-in Customer';
     final customerMobile = customer?['mobile'] as String? ?? '';
     
     final addressLine1 = customer?['addressLine1'] as String? ?? '';
@@ -89,13 +89,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     return Scaffold(
       backgroundColor: AppColors.bgLight,
       appBar: AppBar(
-        title: Text('Order: ${_order!['orderId'] ?? widget.orderId}'),
+        backgroundColor: AppColors.darkBg,
+        title: Text('Order: ${_order!['orderId'] ?? widget.orderId}', style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
-              icon: const Icon(Icons.edit_outlined),
+              icon: const Icon(Icons.edit_outlined, color: AppColors.accent),
               onPressed: () {}),
           IconButton(
-              icon: const Icon(Icons.more_vert),
+              icon: const Icon(Icons.more_vert, color: AppColors.white),
               onPressed: () {}),
         ],
       ),
@@ -110,7 +111,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
             // Customer card
             _infoCard('Customer Details', [
-              _infoRow(Icons.person_outline, customerName, AppColors.accent2),
+              _infoRow(Icons.person_outline, customerName, AppColors.accent),
               if (customerMobile.isNotEmpty)
                 _infoRow(Icons.phone_outlined, '+91 $customerMobile', AppColors.green),
               _infoRow(Icons.location_on_outlined, customerAddress, AppColors.orange),
@@ -129,8 +130,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             // Garments table
             Container(
               decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(12),
+                color: AppColors.darkSurface,
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.cardBorder),
               ),
               child: Column(
@@ -141,10 +142,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     child: Text('Garment Breakdown',
                         style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: AppColors.textDark)),
+                            fontSize: 15,
+                            color: AppColors.white)),
                   ),
-                  const Divider(height: 1),
+                  const Divider(height: 1, color: AppColors.cardBorder),
                   _garmentTableHeader(),
                   ...garments.map((g) {
                     final name = g['name'] as String? ?? 'Item';
@@ -152,64 +153,67 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     final rate = g['rate'] as num? ?? 40;
                     return _garmentRow(name, qty.toInt(), rate.toInt());
                   }).toList(),
-                  const Divider(height: 1),
+                  const Divider(height: 1, color: AppColors.cardBorder),
                   _totalRow('Subtotal', '₹$subtotal'),
                   if (deliveryCharge > 0)
                     _totalRow('Delivery Charge', '₹$deliveryCharge'),
-                  _totalRow('Total', '₹$totalAmount', bold: true),
+                  _totalRow('Total Amount', '₹$totalAmount', bold: true),
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
 
             // Payment status
             Container(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: isPaid
-                    ? AppColors.green.withOpacity(0.08)
-                    : AppColors.red.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(12),
+                    ? AppColors.green.withOpacity(0.12)
+                    : AppColors.red.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                     color: isPaid
-                        ? AppColors.green.withOpacity(0.3)
-                        : AppColors.red.withOpacity(0.3)),
+                        ? AppColors.green.withOpacity(0.4)
+                        : AppColors.red.withOpacity(0.4)),
               ),
               child: Row(
                 children: [
                   Icon(
                       isPaid ? Icons.check_circle : Icons.error_outline,
-                      color: isPaid ? AppColors.green : AppColors.red),
-                  const SizedBox(width: 10),
+                      color: isPaid ? AppColors.green : AppColors.red, size: 22),
+                  const SizedBox(width: 12),
                   Text(
-                      isPaid ? 'Payment: PAID — ₹$totalAmount' : 'Payment: UNPAID — ₹$totalAmount',
+                      isPaid ? 'Payment Status: PAID — ₹$totalAmount' : 'Payment Status: UNPAID — ₹$totalAmount',
                       style: TextStyle(
                           color: isPaid ? AppColors.green : AppColors.red,
-                          fontWeight: FontWeight.bold)),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14)),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
             // Actions
             AppButton(
-              label: 'Update Status',
+              label: 'Update Order Status',
+              icon: Icons.sync,
               onTap: () async {
                 await context.push('/orders/${widget.orderId}/status');
-                _loadOrder(); // Reload order after status update
+                _loadOrder();
               },
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             AppButton(
               label: 'View Invoice',
-              onTap: () =>
-                  context.push('/invoices/${widget.orderId}'),
+              icon: Icons.receipt_long,
+              onTap: () => context.push('/invoices/${widget.orderId}'),
               color: AppColors.accent2,
             ),
             if (!isPaid) ...[
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               AppButton(
                 label: 'Collect Payment',
+                icon: Icons.payments_outlined,
                 onTap: () async {
                   await context.push('/collect-payment');
                   _loadOrder();
@@ -217,6 +221,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 color: AppColors.gold,
               ),
             ],
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -242,19 +247,19 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     ];
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.darkSurface,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.cardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Order Status',
+          const Text('Order Progress Timeline',
               style: TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 14)),
-          const SizedBox(height: 14),
+                  fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.white)),
+          const SizedBox(height: 16),
           Row(
             children: steps.asMap().entries.map((e) {
               final i = e.key;
@@ -278,14 +283,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                   ? Icons.check
                                   : Icons.circle,
                               size: done ? 14 : 6,
-                              color: AppColors.white,
+                              color: done ? AppColors.darkBg : AppColors.textSub,
                             ),
                           ),
                           const SizedBox(height: 6),
                           Text(step['label'] as String,
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                  fontSize: 9,
+                                  fontSize: 10,
                                   fontWeight: done
                                       ? FontWeight.bold
                                       : FontWeight.normal,
@@ -302,8 +307,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           color: done
                               ? AppColors.green
                               : AppColors.cardBorder,
-                          margin: const EdgeInsets.only(
-                              bottom: 22),
+                          margin: const EdgeInsets.only(bottom: 22),
                         ),
                       ),
                   ],
@@ -319,25 +323,25 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Widget _infoCard(String title, List<Widget> rows) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.darkSurface,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.cardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 14, 14, 8),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
             child: Text(title,
                 style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: AppColors.textDark)),
+                    fontSize: 15,
+                    color: AppColors.white)),
           ),
-          const Divider(height: 1),
+          const Divider(height: 1, color: AppColors.cardBorder),
           ...rows.map((r) => Padding(
               padding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 8),
+                  horizontal: 16, vertical: 10),
               child: r)),
         ],
       ),
@@ -348,19 +352,19 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     return Row(
       children: [
         Icon(icon, size: 18, color: color),
-        const SizedBox(width: 10),
+        const SizedBox(width: 12),
         Expanded(
             child: Text(text,
-                style: const TextStyle(fontSize: 13))),
+                style: const TextStyle(fontSize: 14, color: AppColors.white, fontWeight: FontWeight.w500))),
       ],
     );
   }
 
   Widget _garmentTableHeader() {
     return Container(
-      color: AppColors.highlight,
+      color: AppColors.darkBg,
       padding: const EdgeInsets.symmetric(
-          horizontal: 14, vertical: 8),
+          horizontal: 16, vertical: 10),
       child: const Row(
         children: [
           Expanded(
@@ -368,7 +372,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textSub))),
+                      color: AppColors.accent))),
           SizedBox(
               width: 40,
               child: Text('Qty',
@@ -376,15 +380,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textSub))),
+                      color: AppColors.accent))),
           SizedBox(
-              width: 60,
+              width: 70,
               child: Text('Amount',
                   textAlign: TextAlign.right,
                   style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textSub))),
+                      color: AppColors.accent))),
         ],
       ),
     );
@@ -393,11 +397,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Widget _garmentRow(String name, int qty, int price) {
     return Padding(
       padding: const EdgeInsets.symmetric(
-          horizontal: 14, vertical: 8),
+          horizontal: 16, vertical: 10),
       child: Row(
         children: [
           Expanded(child: Text(name,
-              style: const TextStyle(fontSize: 13))),
+              style: const TextStyle(fontSize: 14, color: AppColors.white))),
           SizedBox(
               width: 40,
               child: Text('x$qty',
@@ -406,11 +410,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       fontSize: 13,
                       color: AppColors.textSub))),
           SizedBox(
-              width: 60,
+              width: 70,
               child: Text('₹${qty * price}',
                   textAlign: TextAlign.right,
                   style: const TextStyle(
-                      fontSize: 13,
+                      fontSize: 14,
+                      color: AppColors.white,
                       fontWeight: FontWeight.w600))),
         ],
       ),
@@ -421,26 +426,26 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       {bool bold = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(
-          horizontal: 14, vertical: 6),
+          horizontal: 16, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
               style: TextStyle(
-                  fontSize: bold ? 14 : 13,
+                  fontSize: bold ? 15 : 13,
                   fontWeight: bold
                       ? FontWeight.bold
                       : FontWeight.normal,
                   color: bold
-                      ? AppColors.textDark
+                      ? AppColors.white
                       : AppColors.textSub)),
           Text(value,
               style: TextStyle(
-                  fontSize: bold ? 16 : 13,
+                  fontSize: bold ? 17 : 14,
                   fontWeight: FontWeight.bold,
                   color: bold
-                      ? AppColors.accent2
-                      : AppColors.textDark)),
+                      ? AppColors.gold
+                      : AppColors.white)),
         ],
       ),
     );

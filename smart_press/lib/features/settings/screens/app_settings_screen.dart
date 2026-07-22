@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/services/http_helper.dart';
 
 class AppSettingsScreen extends StatefulWidget {
@@ -18,6 +19,7 @@ class _AppSettingsScreenState
   bool _notifications = true;
   bool _smsAlerts = true;
   bool _autoBackup = false;
+  bool _isOpen = true;
   final _languages = [
     'English', 'Hindi', 'Tamil', 'Telugu', 'Kannada'
   ];
@@ -34,28 +36,204 @@ class _AppSettingsScreenState
   Future<void> _loadUser() async {
     try {
       final u = await HttpHelper.getUser();
-      setState(() {
-        _user = u;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _user = u;
+          if (u != null && u['isOpen'] != null) {
+            _isOpen = u['isOpen'] as bool;
+          }
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showSnack(String msg, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _showEditShopProfileModal() async {
+    final shopNameCtrl = TextEditingController(text: _user?['shopName'] as String? ?? _user?['name'] as String? ?? '');
+    final mobileCtrl = TextEditingController(text: _user?['mobile'] as String? ?? '');
+    final addressCtrl = TextEditingController(text: _user?['address'] as String? ?? _user?['addressLine1'] as String? ?? '');
+    final cityCtrl = TextEditingController(text: _user?['city'] as String? ?? '');
+
+    bool isSaving = false;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.darkSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                top: 20,
+                left: 20,
+                right: 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.storefront, color: AppColors.accent, size: 24),
+                      SizedBox(width: 8),
+                      Text(
+                        'Edit Shop Profile',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: shopNameCtrl,
+                    style: const TextStyle(color: AppColors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Shop / Owner Name',
+                      labelStyle: const TextStyle(color: AppColors.textSub),
+                      prefixIcon: const Icon(Icons.store, color: AppColors.accent),
+                      filled: true,
+                      fillColor: AppColors.darkBg,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.accent)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: mobileCtrl,
+                    keyboardType: TextInputType.phone,
+                    style: const TextStyle(color: AppColors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Mobile Number',
+                      labelStyle: const TextStyle(color: AppColors.textSub),
+                      prefixIcon: const Icon(Icons.phone_outlined, color: AppColors.accent),
+                      filled: true,
+                      fillColor: AppColors.darkBg,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.accent)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: addressCtrl,
+                    style: const TextStyle(color: AppColors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Shop Address',
+                      labelStyle: const TextStyle(color: AppColors.textSub),
+                      prefixIcon: const Icon(Icons.location_on_outlined, color: AppColors.accent),
+                      filled: true,
+                      fillColor: AppColors.darkBg,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.accent)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: cityCtrl,
+                    style: const TextStyle(color: AppColors.white),
+                    decoration: InputDecoration(
+                      labelText: 'City',
+                      labelStyle: const TextStyle(color: AppColors.textSub),
+                      prefixIcon: const Icon(Icons.location_city_outlined, color: AppColors.accent),
+                      filled: true,
+                      fillColor: AppColors.darkBg,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.accent)),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.accent,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: isSaving
+                          ? null
+                          : () async {
+                              setModalState(() => isSaving = true);
+                              final payload = {
+                                'shopName': shopNameCtrl.text.trim(),
+                                'name': shopNameCtrl.text.trim(),
+                                'mobile': mobileCtrl.text.trim(),
+                                'address': addressCtrl.text.trim(),
+                                'city': cityCtrl.text.trim(),
+                              };
+                              final res = await AuthService.updateProfile(payload);
+                              setModalState(() => isSaving = false);
+                              if (res['success'] == true) {
+                                final updatedUser = Map<String, dynamic>.from(_user ?? {})..addAll(payload);
+                                await HttpHelper.saveUser(updatedUser);
+                                Navigator.pop(ctx);
+                                if (mounted) {
+                                  setState(() => _user = updatedUser);
+                                  _showSnack('Shop profile updated successfully!', AppColors.green);
+                                }
+                              } else {
+                                _showSnack(res['error'] ?? 'Failed to update profile', AppColors.red);
+                              }
+                            },
+                      child: isSaving
+                          ? const CircularProgressIndicator(color: AppColors.darkBg)
+                          : const Text('Save Shop Profile', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.darkBg, fontSize: 16)),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    shopNameCtrl.dispose();
+    mobileCtrl.dispose();
+    addressCtrl.dispose();
+    cityCtrl.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final shopName = _user?['shopName'] as String? ?? _user?['name'] as String? ?? 'Smart Press';
+    final shopName = _user?['shopName'] as String? ?? _user?['name'] as String? ?? 'Iron Buddy Express';
     final mobile = _user?['mobile'] as String? ?? '';
-    final address = _user?['address'] as String? ?? 'Koramangala';
-    final city = _user?['city'] as String? ?? 'Bengaluru';
-    final fullAddress = '$address, $city';
+    final address = _user?['address'] as String? ?? _user?['addressLine1'] as String? ?? 'Shop Location';
+    final city = _user?['city'] as String? ?? '';
+    final fullAddress = city.isNotEmpty ? '$address, $city' : address;
 
-    final initial = shopName.isNotEmpty ? shopName.substring(0, 1).toUpperCase() : 'S';
+    final initial = shopName.isNotEmpty ? shopName.substring(0, 1).toUpperCase() : 'I';
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,
-      appBar: AppBar(title: const Text('App Settings')),
+      appBar: AppBar(
+        backgroundColor: AppColors.darkBg,
+        title: const Text('App Settings', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.bold)),
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
           : SingleChildScrollView(
@@ -110,38 +288,50 @@ class _AppSettingsScreenState
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(shopName,
                                   style: const TextStyle(
                                       color: AppColors.white,
                                       fontSize: 18,
-                                      fontWeight:
-                                          FontWeight.bold)),
+                                      fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 2),
                               Text('+91 $mobile',
                                   style: const TextStyle(
-                                      color: Colors.white70,
+                                      color: AppColors.textSub,
                                       fontSize: 13)),
                               Text(fullAddress,
                                   style: const TextStyle(
-                                      color: Colors.white60,
+                                      color: AppColors.accent,
                                       fontSize: 12)),
                             ],
                           ),
                         ),
-                        TextButton(
-                          onPressed: () {},
-                          child: const Text('Edit',
+                        TextButton.icon(
+                          onPressed: _showEditShopProfileModal,
+                          icon: const Icon(Icons.edit_outlined, size: 16, color: AppColors.gold),
+                          label: const Text('Edit',
                               style: TextStyle(
-                                  color: AppColors.gold)),
+                                  color: AppColors.gold,
+                                  fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ),
                   ),
 
                   const SizedBox(height: 8),
-                  _sectionHeader('General'),
+                  _sectionHeader('GENERAL SETTINGS'),
+                  _switchItem(
+                    icon: Icons.storefront,
+                    color: _isOpen ? AppColors.green : AppColors.red,
+                    title: 'Shop Status (Open/Closed)',
+                    subtitle: _isOpen ? 'Currently OPEN for customer orders' : 'Currently CLOSED for customer orders',
+                    value: _isOpen,
+                    onChanged: (v) async {
+                      setState(() => _isOpen = v);
+                      await AuthService.updateProfile({'isOpen': v});
+                    },
+                  ),
                   _settingItem(
                     icon: Icons.language,
                     color: AppColors.accent2,
@@ -149,10 +339,11 @@ class _AppSettingsScreenState
                     subtitle: _language,
                     trailing: DropdownButton<String>(
                       value: _language,
+                      dropdownColor: AppColors.darkSurface,
                       underline: const SizedBox(),
                       items: _languages
                           .map((l) => DropdownMenuItem(
-                              value: l, child: Text(l)))
+                              value: l, child: Text(l, style: const TextStyle(color: AppColors.white))))
                           .toList(),
                       onChanged: (v) =>
                           setState(() => _language = v!),
@@ -162,22 +353,20 @@ class _AppSettingsScreenState
                     icon: Icons.store_outlined,
                     color: AppColors.orange,
                     title: 'Shop Profile',
-                    subtitle: 'Name, address, hours',
-                    trailing: const Icon(Icons.chevron_right,
-                        color: AppColors.cardBorder),
-                    onTap: () {},
+                    subtitle: 'Name, address, contact',
+                    trailing: const Icon(Icons.chevron_right, color: AppColors.cardBorder),
+                    onTap: _showEditShopProfileModal,
                   ),
                   _settingItem(
                     icon: Icons.qr_code,
                     color: AppColors.gold,
                     title: 'Payment QR Code',
                     subtitle: 'Update GPay / PhonePe QR',
-                    trailing: const Icon(Icons.chevron_right,
-                        color: AppColors.cardBorder),
+                    trailing: const Icon(Icons.chevron_right, color: AppColors.cardBorder),
                     onTap: () => context.push('/settings/qr'),
                   ),
 
-                  _sectionHeader('Notifications'),
+                  _sectionHeader('NOTIFICATIONS'),
                   _switchItem(
                     icon: Icons.notifications_outlined,
                     color: AppColors.accent,
@@ -197,7 +386,7 @@ class _AppSettingsScreenState
                         setState(() => _smsAlerts = v),
                   ),
 
-                  _sectionHeader('Data & Backup'),
+                  _sectionHeader('DATA & BACKUP'),
                   _switchItem(
                     icon: Icons.backup_outlined,
                     color: AppColors.accent2,
@@ -212,33 +401,22 @@ class _AppSettingsScreenState
                     color: AppColors.green,
                     title: 'Export All Data',
                     subtitle: 'Download full backup',
-                    trailing: const Icon(Icons.chevron_right,
-                        color: AppColors.cardBorder),
+                    trailing: const Icon(Icons.chevron_right, color: AppColors.cardBorder),
                     onTap: () => context.push('/reports/export'),
                   ),
 
-                  _sectionHeader('About'),
+                  _sectionHeader('ABOUT'),
                   _settingItem(
                     icon: Icons.info_outline,
                     color: AppColors.textSub,
                     title: 'App Version',
-                    subtitle: 'v1.0.0',
+                    subtitle: 'v2.0.0 • Iron Buddy',
                     trailing: null,
                   ),
-                  _settingItem(
-                    icon: Icons.support_agent,
-                    color: AppColors.accent,
-                    title: 'Support',
-                    subtitle: 'Contact us for help',
-                    trailing: const Icon(Icons.chevron_right,
-                        color: AppColors.cardBorder),
-                    onTap: () {},
-                  ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: SizedBox(
                       width: double.infinity,
                       height: 48,
@@ -248,18 +426,14 @@ class _AppSettingsScreenState
                           HttpHelper.clearAll();
                           context.go('/');
                         },
-                        icon: const Icon(Icons.logout,
-                            color: AppColors.red),
+                        icon: const Icon(Icons.logout, color: AppColors.red),
                         label: const Text('Logout',
                             style: TextStyle(
                                 color: AppColors.red,
                                 fontWeight: FontWeight.bold)),
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(
-                              color: AppColors.red),
-                          shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(12)),
+                          side: const BorderSide(color: AppColors.red),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
                     ),
@@ -273,13 +447,16 @@ class _AppSettingsScreenState
 
   Widget _sectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-      child: Text(title,
-          style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-              color: AppColors.textSub,
-              letterSpacing: 1)),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 6),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+          color: AppColors.accent,
+          letterSpacing: 1.4,
+        ),
+      ),
     );
   }
 
@@ -302,12 +479,8 @@ class _AppSettingsScreenState
         ),
         child: Icon(icon, color: color, size: 20),
       ),
-      title: Text(title,
-          style: const TextStyle(
-              fontWeight: FontWeight.w600)),
-      subtitle: Text(subtitle,
-          style: const TextStyle(
-              fontSize: 12, color: AppColors.textSub)),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.white)),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textSub)),
       trailing: trailing,
     );
   }
@@ -330,12 +503,8 @@ class _AppSettingsScreenState
         ),
         child: Icon(icon, color: color, size: 20),
       ),
-      title: Text(title,
-          style: const TextStyle(
-              fontWeight: FontWeight.w600)),
-      subtitle: Text(subtitle,
-          style: const TextStyle(
-              fontSize: 12, color: AppColors.textSub)),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.white)),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textSub)),
       trailing: Switch(
         value: value,
         activeColor: color,

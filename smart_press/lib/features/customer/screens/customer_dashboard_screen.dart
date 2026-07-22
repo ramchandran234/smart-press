@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/services/order_service.dart';
 
 class CustomerDashboardScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
   double _dueAmount = 0.0;
   List<dynamic> _customerOrders = [];
   bool _loading = true;
+  String _userName = 'My Laundry';
 
   @override
   void initState() {
@@ -25,6 +27,17 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
   }
 
   Future<void> _fetchDashboardData() async {
+    try {
+      final profileRes = await AuthService.getProfile();
+      if (profileRes['success'] == true && profileRes['user'] != null) {
+        final u = profileRes['user'] as Map<String, dynamic>;
+        final name = u['name'] as String? ?? u['shopName'] as String?;
+        if (name != null && name.isNotEmpty) {
+          _userName = name;
+        }
+      }
+    } catch (_) {}
+
     try {
       final res = await OrderService.getCustomerAppOrders();
       if (res['success'] == true) {
@@ -125,8 +138,8 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                   fontSize: 13,
                   color: Colors.white70),
             ),
-            const Text('My Laundry',
-                style: TextStyle(
+            Text(_userName,
+                style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold)),
           ],
@@ -313,7 +326,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                       '/customer/delivery-mode'),
                   _tile(context,
                       Icons.qr_code_scanner,
-                      'Scan QR', AppColors.darkBg,
+                      'Scan QR', const Color(0xFFE040FB),
                       '/customer/orders'),
                   _tile(context, Icons.track_changes,
                       'Track', AppColors.red,
@@ -355,8 +368,9 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                 )
               else
                 ..._customerOrders.take(3).map((o) {
-                  final shop = o['owner'] as Map<String, dynamic>?;
-                  final shopName = shop != null ? shop['shopName'] as String? ?? 'Smart Press' : 'Smart Press';
+                  final rawOwner = o['owner'];
+                  final shop = rawOwner is Map<String, dynamic> ? rawOwner : null;
+                  final shopName = shop != null ? (shop['shopName'] ?? shop['name'] ?? 'Iron Buddy Express').toString() : 'Iron Buddy Express';
                   final status = o['status'] as String? ?? 'received';
                   return _orderCard(
                     context,

@@ -5,6 +5,9 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/services/http_helper.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/responsive_web_wrapper.dart';
+
+import '../../../core/services/location_service.dart';
 
 class CreateVendorOrderScreen extends StatefulWidget {
   final String? vendorId;
@@ -33,6 +36,11 @@ class _CreateVendorOrderScreenState
   bool _loadingVendor = true;
   bool _submitting = false;
 
+  double _calculatedDistance = 0.3;
+  bool _isShopOpen = true;
+  bool _isOutOfDistance = false;
+  LocationDataResult? _customerLocation;
+
   @override
   void initState() {
     super.initState();
@@ -47,15 +55,34 @@ class _CreateVendorOrderScreenState
 
   Future<void> _loadVendor() async {
     try {
+      final custLoc = await LocationService.getCurrentLiveLocation();
+      _customerLocation = custLoc;
+
       final res = await HttpHelper.get('/auth/vendors');
       if (res['success'] == true) {
         final vendorsList = res['vendors'] as List<dynamic>;
         final matched = vendorsList.firstWhere(
           (v) => v['_id'] == widget.vendorId,
           orElse: () => null,
-        );
+        ) as Map<String, dynamic>?;
+
+        double dist = 0.3;
+        bool open = true;
+        bool outOfDist = false;
+
+        if (matched != null) {
+          open = matched['isOpen'] != false;
+          double vLat = matched['latitude'] != null ? (matched['latitude'] as num).toDouble() : 12.9352;
+          double vLng = matched['longitude'] != null ? (matched['longitude'] as num).toDouble() : 77.6245;
+          dist = LocationService.calculateDistance(custLoc.latitude, custLoc.longitude, vLat, vLng);
+          outOfDist = dist > 10.0;
+        }
+
         setState(() {
           _selectedVendor = matched;
+          _calculatedDistance = dist;
+          _isShopOpen = open;
+          _isOutOfDistance = outOfDist;
           _loadingVendor = false;
         });
       } else {
@@ -81,6 +108,14 @@ class _CreateVendorOrderScreenState
       _showSnack('Error: No vendor selected', AppColors.red);
       return;
     }
+    if (!_isShopOpen) {
+      _showSnack('Shop is currently closed', AppColors.red);
+      return;
+    }
+    if (_isOutOfDistance) {
+      _showSnack('out of distance try another shop', AppColors.red);
+      return;
+    }
     if (_garments.isEmpty) {
       _showSnack('Please add at least one garment', AppColors.red);
       return;
@@ -98,6 +133,9 @@ class _CreateVendorOrderScreenState
       'orderType': 'pickup',
       'serviceType': _service,
       'notes': _notesController.text.trim(),
+      'customerLat': _customerLocation?.latitude,
+      'customerLng': _customerLocation?.longitude,
+      'distance': _calculatedDistance,
     };
 
     try {
@@ -188,33 +226,81 @@ class _CreateVendorOrderScreenState
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppColors.accent.withOpacity(0.08),
+                      color: (_isOutOfDistance || !_isShopOpen)
+                          ? AppColors.red.withOpacity(0.08)
+                          : AppColors.accent.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                          color: AppColors.accent.withOpacity(0.3)),
+                          color: (_isOutOfDistance || !_isShopOpen)
+                              ? AppColors.red.withOpacity(0.4)
+                              : AppColors.accent.withOpacity(0.3)),
                     ),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.store,
-                            color: AppColors.accent, size: 28),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
-                            children: [
-                              Text(vendorName,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15)),
-                              Text(
-                                  '$vendorAddress  •  0.3 km  •  ⭐ 4.8',
-                                  style: const TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.textSub)),
-                            ],
-                          ),
+                        Row(
+                          children: [
+                            const Icon(Icons.store,
+                                color: AppColors.accent, size: 28),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(vendorName,
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 15)),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: _isShopOpen ? AppColors.green.withOpacity(0.12) : AppColors.red.withOpacity(0.12),
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: Text(
+                                          _isShopOpen ? 'Open' : 'Closed',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: _isShopOpen ? AppColors.green : AppColors.red,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                      '$vendorAddress  •  ${_calculatedDistance.toStringAsFixed(1)} km away  •  ⭐ 4.8',
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: _isOutOfDistance ? FontWeight.bold : FontWeight.normal,
+                                          color: _isOutOfDistance ? AppColors.red : AppColors.textSub)),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
+                        if (_isOutOfDistance) ...[
+                          const SizedBox(height: 10),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppColors.red.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '⚠️ out of distance try another shop (${_calculatedDistance.toStringAsFixed(1)} km > 10 km limit)',
+                              style: const TextStyle(color: AppColors.red, fontWeight: FontWeight.bold, fontSize: 12),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -402,11 +488,41 @@ class _CreateVendorOrderScreenState
 
                   _submitting
                       ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
-                      : AppButton(
-                          label: 'Place Vendor Order',
-                          color: AppColors.accent,
-                          onTap: _placeOrder,
-                        ),
+                      : !_isShopOpen
+                          ? Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              decoration: BoxDecoration(
+                                color: AppColors.red.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppColors.red),
+                              ),
+                              child: const Text(
+                                'Shop is Currently Closed',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: AppColors.red, fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
+                            )
+                          : _isOutOfDistance
+                              ? Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.red.withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: AppColors.red),
+                                  ),
+                                  child: const Text(
+                                    'out of distance try another shop',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: AppColors.red, fontWeight: FontWeight.bold, fontSize: 14),
+                                  ),
+                                )
+                              : AppButton(
+                                  label: 'Place Vendor Order (${_calculatedDistance.toStringAsFixed(1)} km)',
+                                  color: AppColors.accent,
+                                  onTap: _placeOrder,
+                                ),
                 ],
               ),
             ),

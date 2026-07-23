@@ -203,10 +203,14 @@ class _CustomerSettingsScreenState
       },
     );
 
-    nameCtrl.dispose();
-    mobileCtrl.dispose();
-    addressCtrl.dispose();
-    cityCtrl.dispose();
+    // Delay disposal to allow the modal's exit animation to complete
+    // Disposing controllers while the modal is still animating out causes assertion errors
+    Future.delayed(const Duration(milliseconds: 500), () {
+      nameCtrl.dispose();
+      mobileCtrl.dispose();
+      addressCtrl.dispose();
+      cityCtrl.dispose();
+    });
   }
 
   @override

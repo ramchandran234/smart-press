@@ -1,5 +1,5 @@
 // lib/core/models/order_model.dart
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/date_helper.dart';
 
 class Garment {
   final String name;
@@ -57,9 +57,7 @@ class StatusHistory {
       status: map['status'] ?? '',
       note: map['note'],
       updatedBy: map['updatedBy'],
-      time: map['time'] != null
-          ? (map['time'] as Timestamp).toDate()
-          : DateTime.now(),
+      time: DateHelper.parseDateTime(map['time']) ?? DateTime.now(),
     );
   }
 
@@ -158,33 +156,19 @@ class OrderModel {
       paidAmount: (map['paidAmount'] ?? 0).toDouble(),
       isPaid: map['isPaid'] ?? false,
       paymentMode: map['paymentMode'],
-      paymentDate: map['paymentDate'] != null
-          ? (map['paymentDate'] as Timestamp).toDate()
-          : null,
-      expectedDate: map['expectedDate'] != null
-          ? (map['expectedDate'] as Timestamp).toDate()
-          : null,
-      deliveredAt: map['deliveredAt'] != null
-          ? (map['deliveredAt'] as Timestamp).toDate()
-          : null,
-      pickupDate: map['pickupDate'] != null
-          ? (map['pickupDate'] as Timestamp).toDate()
-          : null,
+      paymentDate: DateHelper.parseDateTime(map['paymentDate']),
+      expectedDate: DateHelper.parseDateTime(map['expectedDate']),
+      deliveredAt: DateHelper.parseDateTime(map['deliveredAt']),
+      pickupDate: DateHelper.parseDateTime(map['pickupDate']),
       pickupSlot: map['pickupSlot'],
-      deliveryDate: map['deliveryDate'] != null
-          ? (map['deliveryDate'] as Timestamp).toDate()
-          : null,
+      deliveryDate: DateHelper.parseDateTime(map['deliveryDate']),
       deliverySlot: map['deliverySlot'],
       pickupAddress: map['pickupAddress'],
       deliveryAddress: map['deliveryAddress'],
       notes: map['notes'],
       qrCode: map['qrCode'],
-      createdAt: map['createdAt'] != null
-          ? (map['createdAt'] as Timestamp).toDate()
-          : null,
-      updatedAt: map['updatedAt'] != null
-          ? (map['updatedAt'] as Timestamp).toDate()
-          : null,
+      createdAt: DateHelper.parseDateTime(map['createdAt']),
+      updatedAt: DateHelper.parseDateTime(map['updatedAt']),
     );
   }
 

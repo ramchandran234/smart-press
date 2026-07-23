@@ -1,5 +1,5 @@
 // lib/core/models/supplier_model.dart
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/date_helper.dart';
 
 class PaymentHistory {
   final double amount;
@@ -25,9 +25,7 @@ class PaymentHistory {
       reference: map['reference'],
       note: map['note'],
       screenshot: map['screenshot'],
-      paidAt: map['paidAt'] != null
-          ? (map['paidAt'] as Timestamp).toDate()
-          : DateTime.now(),
+      paidAt: DateHelper.parseDateTime(map['paidAt']) ?? DateTime.now(),
     );
   }
 
@@ -101,12 +99,8 @@ class SupplierModel {
           ?.map((p) => PaymentHistory.fromMap(p as Map<String, dynamic>))
           .toList() ?? [],
       isActive: map['isActive'] ?? true,
-      createdAt: map['createdAt'] != null
-          ? (map['createdAt'] as Timestamp).toDate()
-          : null,
-      updatedAt: map['updatedAt'] != null
-          ? (map['updatedAt'] as Timestamp).toDate()
-          : null,
+      createdAt: DateHelper.parseDateTime(map['createdAt']),
+      updatedAt: DateHelper.parseDateTime(map['updatedAt']),
     );
   }
 

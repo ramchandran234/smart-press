@@ -1,5 +1,5 @@
 // lib/core/models/invoice_model.dart
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/date_helper.dart';
 
 class InvoiceModel {
   final String id;
@@ -50,20 +50,12 @@ class InvoiceModel {
       discount: (map['discount'] ?? 0).toDouble(),
       totalAmount: (map['totalAmount'] ?? 0).toDouble(),
       isPaid: map['isPaid'] ?? false,
-      paidAt: map['paidAt'] != null
-          ? (map['paidAt'] as Timestamp).toDate()
-          : null,
-      dueDate: map['dueDate'] != null
-          ? (map['dueDate'] as Timestamp).toDate()
-          : null,
+      paidAt: DateHelper.parseDateTime(map['paidAt']),
+      dueDate: DateHelper.parseDateTime(map['dueDate']),
       pdfUrl: map['pdfUrl'],
       sharedVia: List<String>.from(map['sharedVia'] ?? []),
-      createdAt: map['createdAt'] != null
-          ? (map['createdAt'] as Timestamp).toDate()
-          : null,
-      updatedAt: map['updatedAt'] != null
-          ? (map['updatedAt'] as Timestamp).toDate()
-          : null,
+      createdAt: DateHelper.parseDateTime(map['createdAt']),
+      updatedAt: DateHelper.parseDateTime(map['updatedAt']),
     );
   }
 

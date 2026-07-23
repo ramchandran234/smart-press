@@ -1,5 +1,5 @@
 // lib/core/models/customer_model.dart
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/date_helper.dart';
 
 class CustomerModel {
   final String id;
@@ -59,15 +59,9 @@ class CustomerModel {
       totalOrders: map['totalOrders'] ?? 0,
       totalSpend: (map['totalSpend'] ?? 0).toDouble(),
       balance: (map['balance'] ?? 0).toDouble(),
-      lastOrderAt: map['lastOrderAt'] != null
-          ? (map['lastOrderAt'] as Timestamp).toDate()
-          : null,
-      createdAt: map['createdAt'] != null
-          ? (map['createdAt'] as Timestamp).toDate()
-          : null,
-      updatedAt: map['updatedAt'] != null
-          ? (map['updatedAt'] as Timestamp).toDate()
-          : null,
+      lastOrderAt: DateHelper.parseDateTime(map['lastOrderAt']),
+      createdAt: DateHelper.parseDateTime(map['createdAt']),
+      updatedAt: DateHelper.parseDateTime(map['updatedAt']),
     );
   }
 

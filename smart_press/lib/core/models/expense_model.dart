@@ -1,5 +1,5 @@
 // lib/core/models/expense_model.dart
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/date_helper.dart';
 
 class ExpenseModel {
   final String id;
@@ -39,17 +39,11 @@ class ExpenseModel {
       category: map['category'] ?? 'Other',
       amount: (map['amount'] ?? 0).toDouble(),
       paymentMode: map['paymentMode'] ?? 'Cash',
-      expenseDate: map['expenseDate'] != null
-          ? (map['expenseDate'] as Timestamp).toDate()
-          : DateTime.now(),
+      expenseDate: DateHelper.parseDateTime(map['expenseDate']) ?? DateTime.now(),
       receipt: map['receipt'],
       notes: map['notes'],
-      createdAt: map['createdAt'] != null
-          ? (map['createdAt'] as Timestamp).toDate()
-          : null,
-      updatedAt: map['updatedAt'] != null
-          ? (map['updatedAt'] as Timestamp).toDate()
-          : null,
+      createdAt: DateHelper.parseDateTime(map['createdAt']),
+      updatedAt: DateHelper.parseDateTime(map['updatedAt']),
     );
   }
 

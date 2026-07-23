@@ -1,5 +1,5 @@
 // lib/core/models/user_model.dart
-import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/date_helper.dart';
 class UserModel {
   final String id;
   final String name;
@@ -54,14 +54,11 @@ class UserModel {
       isVerified: map['isVerified'] ?? false,
       isActive: map['isActive'] ?? true,
       fcmToken: map['fcmToken'],
-      createdAt: map['createdAt'] != null
-          ? (map['createdAt'] as Timestamp).toDate()
-          : null,
-      updatedAt: map['updatedAt'] != null
-          ? (map['updatedAt'] as Timestamp).toDate()
-          : null,
+      createdAt: DateHelper.parseDateTime(map['createdAt']),
+      updatedAt: DateHelper.parseDateTime(map['updatedAt']),
     );
   }
+
 
   // Convert to map for Firestore
   Map<String, dynamic> toMap() {

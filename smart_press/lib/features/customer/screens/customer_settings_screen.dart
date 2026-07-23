@@ -176,16 +176,17 @@ class _CustomerSettingsScreenState
                                 'city': cityCtrl.text.trim(),
                               };
                               final res = await AuthService.updateProfile(payload);
-                              setModalState(() => isSaving = false);
                               if (res['success'] == true) {
                                 final updatedUser = Map<String, dynamic>.from(_user ?? {})..addAll(payload);
                                 await HttpHelper.saveUser(updatedUser);
+                                if (!context.mounted) return;
                                 Navigator.pop(ctx);
                                 if (mounted) {
                                   setState(() => _user = updatedUser);
                                   _showSnack('Profile updated successfully!', AppColors.green);
                                 }
                               } else {
+                                setModalState(() => isSaving = false);
                                 _showSnack(res['error'] ?? 'Failed to update profile', AppColors.red);
                               }
                             },

@@ -1,0 +1,13 @@
+{
+  "name": "smart-press-backend-vulnerability-tests",
+  "version": "1.0.0",
+  "description": "Backend API Vulnerability & Security Test Suite for Iron Buddy Smart Press - 400+ Test Cases",
+  "main": "generate-report.js",
+  "scripts": {
+    "test": "node generate-report.js",
+    "report": "node generate-report.js"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0"
+  }
+}

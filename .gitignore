@@ -41,5 +41,16 @@ mongodb_data/
 smart_press_backend/query_users.js
 smart_press_backend/delete_users.js
 smart_press_backend/check_name.js
+
+# Python test cache (auto-generated, not needed in git)
+.pytest_cache/
+**/__pycache__/
+
+# Test report Excel outputs (generated files)
 smart_press_selenium/reports/
+smart_press_appium/reports/
+reports/
+
+# Temp / lock files
 ~$*
+*.tmp

@@ -3,6 +3,11 @@
     <!-- Internet Permission - Required for API calls -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <!-- GPS Location Permissions - Required for accurate location detection -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
+
     <application
         android:label="smart_press"
         android:usesCleartextTraffic="true"

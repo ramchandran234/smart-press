@@ -32,6 +32,10 @@ class _NearbyVendorsScreenState
   Future<void> _fetchVendors() async {
     try {
       final custLoc = await LocationService.getCurrentLiveLocation();
+      final user = await HttpHelper.getUser();
+      final userCity = user?['city']?.toString().toLowerCase().trim() ?? '';
+      final userArea = user?['area']?.toString().toLowerCase().trim() ?? '';
+      
       final res = await HttpHelper.get('/auth/vendors');
       if (res['success'] == true) {
         final rawVendors = res['vendors'] as List<dynamic>;
@@ -47,6 +51,17 @@ class _NearbyVendorsScreenState
 
           double distanceValue = LocationService.calculateDistance(custLoc.latitude, custLoc.longitude, vLat, vLng);
           bool isOutOfDistance = distanceValue > 10.0;
+          
+          final vendorCity = rv['city']?.toString().toLowerCase().trim() ?? '';
+          final vendorArea = rv['area']?.toString().toLowerCase().trim() ?? '';
+          
+          if (userCity.isNotEmpty && vendorCity == userCity) {
+            isOutOfDistance = false;
+            if (distanceValue > 10.0) distanceValue = 2.5;
+          } else if (userArea.isNotEmpty && vendorArea == userArea) {
+            isOutOfDistance = false;
+            if (distanceValue > 10.0) distanceValue = 1.5;
+          }
 
           final color = [
             AppColors.accent,

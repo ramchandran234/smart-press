@@ -98,7 +98,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 const SizedBox(height: 12),
                 AppButton(
                   key: const Key('owner_login_btn'),
-                  label: '🏪  Owner Login',
+                  label: 'Owner Login',
                   icon: Icons.storefront,
                   onTap: () => context.push('/otp?role=owner'),
                   color: AppColors.accent,
@@ -106,7 +106,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 const SizedBox(height: 12),
                 AppButton(
                   key: const Key('owner_register_btn'),
-                  label: '📝  Register New Shop',
+                  label: 'Register New Shop',
                   icon: Icons.app_registration,
                   onTap: () => context.push('/register'),
                   color: AppColors.accent2,
@@ -135,7 +135,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 const SizedBox(height: 12),
                 AppButton(
                   key: const Key('customer_login_btn'),
-                  label: '👤  Customer Login',
+                  label: 'Customer Login',
                   icon: Icons.person_outline,
                   onTap: () => context.push('/otp?role=customer'),
                   color: AppColors.green,
@@ -143,7 +143,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 const SizedBox(height: 12),
                 AppButton(
                   key: const Key('customer_register_btn'),
-                  label: '✨  Create Customer Account',
+                  label: 'Create Customer Account',
                   icon: Icons.person_add_alt_1_outlined,
                   onTap: () => context.push('/customer-register'),
                   color: AppColors.green,

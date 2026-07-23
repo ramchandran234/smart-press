@@ -114,40 +114,59 @@ class HttpHelper {
 
   static Future<Map<String, dynamic>> put(
     String endpoint,
-    Map<String, dynamic> body,
-  ) async {
+    Map<String, dynamic> body, {
+    int attempt = 1,
+  }) async {
     try {
-      print('🌐 PUT → $baseUrl$endpoint');
+      print('🌐 PUT (Attempt $attempt) → $baseUrl$endpoint');
       final response = await http
           .put(
             Uri.parse('$baseUrl$endpoint'),
             headers: await _headers(withAuth: true),
             body: jsonEncode(body),
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 45));
       print('✅ Status → ${response.statusCode}');
       print('📩 Response → ${response.body}');
       return _parse(response);
     } catch (e) {
       print('❌ PUT ERROR → $e');
+      if (attempt < 3) {
+        print('🔄 Retrying PUT (Attempt ${attempt + 1}) to allow Render cold start...');
+        await Future.delayed(const Duration(seconds: 2));
+        return put(endpoint, body, attempt: attempt + 1);
+      }
+      final errStr = e.toString();
+      if (errStr.contains('SocketException') || errStr.contains('Connection refused') || errStr.contains('TimeoutException')) {
+        return {'success': false, 'error': 'Render cloud server is spinning up. Please try again in 5 seconds.'};
+      }
       return {'success': false, 'error': e.toString()};
     }
   }
 
-  static Future<Map<String, dynamic>> delete(String endpoint) async {
+  static Future<Map<String, dynamic>> delete(String endpoint, {int attempt = 1}) async {
     try {
-      print('🌐 DELETE → $baseUrl$endpoint');
+      print('🌐 DELETE (Attempt $attempt) → $baseUrl$endpoint');
       final response = await http
           .delete(
             Uri.parse('$baseUrl$endpoint'),
             headers: await _headers(withAuth: true),
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 45));
       print('✅ Status → ${response.statusCode}');
       print('📩 Response → ${response.body}');
       return _parse(response);
     } catch (e) {
       print('❌ DELETE ERROR → $e');
+      if (attempt < 3) {
+        print('🔄 Retrying DELETE (Attempt ${attempt + 1}) to allow Render cold start...');
+        await Future.delayed(const Duration(seconds: 2));
+        return delete(endpoint, attempt: attempt + 1);
+      }
+      final errStr = e.toString();
+      if (errStr.contains('SocketException') || errStr.contains('Connection refused') || errStr.contains('TimeoutException')) {
+        return {'success': false, 'error': 'Render cloud server is spinning up. Please try again in 5 seconds.'};
+      }
       return {'success': false, 'error': e.toString()};
     }
   }

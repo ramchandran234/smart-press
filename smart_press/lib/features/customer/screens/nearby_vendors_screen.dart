@@ -123,7 +123,7 @@ class _NearbyVendorsScreenState
         children: [
           // Search bar
           Container(
-            color: AppColors.white,
+            color: Colors.transparent,
             padding: const EdgeInsets.fromLTRB(
                 12, 12, 12, 8),
             child: TextField(
@@ -158,7 +158,7 @@ class _NearbyVendorsScreenState
 
           // Filter chips
           Container(
-            color: AppColors.white,
+            color: Colors.transparent,
             padding: const EdgeInsets.fromLTRB(
                 12, 0, 12, 10),
             child: SingleChildScrollView(

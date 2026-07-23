@@ -9,7 +9,7 @@
 
 
     <application
-        android:label="smart_press"
+        android:label="Iron Buddy"
         android:usesCleartextTraffic="true"
         android:icon="@mipmap/ic_launcher">
         <activity

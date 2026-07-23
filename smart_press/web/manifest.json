@@ -1,6 +1,6 @@
 {
-    "name": "smart_press",
-    "short_name": "smart_press",
+    "name": "Iron Buddy",
+    "short_name": "Iron Buddy",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

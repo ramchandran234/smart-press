@@ -170,7 +170,7 @@ class _CustomerSettingsScreenState
                           ? null
                           : () async {
                               setModalState(() => isSaving = true);
-                              final payload = {
+                              final Map<String, dynamic> payload = {
                                 'name': nameCtrl.text.trim(),
                                 'address': addressCtrl.text.trim(),
                                 'city': cityCtrl.text.trim(),

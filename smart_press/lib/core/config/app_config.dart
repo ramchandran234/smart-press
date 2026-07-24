@@ -17,6 +17,6 @@ class AppConfig {
       // ADB Port Reverse or Local Wi-Fi IP fallback
       return "http://127.0.0.1:5000/api";
     }
-    return "https://smart-press-backend.onrender.com/api";
+    return "https://smart-press-api.onrender.com/api";
   }
 }

@@ -32,6 +32,13 @@ class MemoryDb {
     return new crypto.randomBytes(12).toString('hex');
   }
 
+  createUser(userData) {
+    const newUser = { _id: this.generateId(), id: this.generateId(), ...userData };
+    this.users.push(newUser);
+    return newUser;
+  }
+
+
   generateOrderId() {
     const num = Math.floor(1000 + Math.random() * 9000);
     return `ORD${num}`;

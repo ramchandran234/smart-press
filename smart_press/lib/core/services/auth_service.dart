@@ -79,23 +79,22 @@ class AuthService {
   }
 
   static Future<Map<String, dynamic>> sendPasswordResetOtp({
-    required String mobile,
-    required String role,
+    required String email,
   }) async {
     return HttpHelper.post(
       '/auth/send-reset-otp',
-      {'mobile': mobile, 'role': role},
+      {'email': email},
     );
   }
 
   static Future<Map<String, dynamic>> resetPassword({
-    required String mobile,
+    required String email,
     required String otp,
     required String password,
   }) async {
     return HttpHelper.post(
       '/auth/reset-password',
-      {'mobile': mobile, 'otp': otp, 'password': password},
+      {'email': email, 'otp': otp, 'password': password},
     );
   }
 

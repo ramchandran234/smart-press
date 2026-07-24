@@ -215,7 +215,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 label: 'Collect Payment',
                 icon: Icons.payments_outlined,
                 onTap: () async {
-                  await context.push('/collect-payment');
+                  await context.push('/collect-payment/${widget.orderId}');
                   _loadOrder();
                 },
                 color: AppColors.gold,

@@ -25,10 +25,7 @@ class _CreateVendorOrderScreenState
     'Wash + Iron', 'Dry Clean', 'Iron Only', 'Wash Only'
   ];
 
-  final List<Map<String, dynamic>> _garments = [
-    {'name': 'Shirt', 'qty': 2, 'price': 40},
-    {'name': 'Trouser', 'qty': 1, 'price': 50},
-  ];
+  final List<Map<String, dynamic>> _garments = [];
 
   final _notesController = TextEditingController();
 

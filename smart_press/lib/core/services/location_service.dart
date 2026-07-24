@@ -166,4 +166,27 @@ class LocationService {
       );
     }
   }
+
+  /// Forward geocode an address to get latitude and longitude
+  static Future<Map<String, double>?> geocodeAddress(String address) async {
+    try {
+      final q = Uri.encodeComponent(address);
+      final uri = Uri.parse('https://nominatim.openstreetmap.org/search?q=$q&format=json&limit=1');
+      final res = await http.get(uri, headers: {
+        'User-Agent': 'SmartPressApp/1.0',
+      }).timeout(const Duration(seconds: 8));
+
+      if (res.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(res.body);
+        if (data.isNotEmpty) {
+          final lat = double.tryParse(data[0]['lat']?.toString() ?? '');
+          final lon = double.tryParse(data[0]['lon']?.toString() ?? '');
+          if (lat != null && lon != null) {
+            return {'lat': lat, 'lon': lon};
+          }
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
 }

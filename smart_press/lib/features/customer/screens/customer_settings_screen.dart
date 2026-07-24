@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/http_helper.dart';
+import '../../../core/services/location_service.dart';
 
 class CustomerSettingsScreen extends StatefulWidget {
   const CustomerSettingsScreen({super.key});
@@ -171,10 +172,15 @@ class _CustomerSettingsScreenState
                               setModalState(() => isSaving = true);
                               final payload = {
                                 'name': nameCtrl.text.trim(),
-                                'mobile': mobileCtrl.text.trim(),
                                 'address': addressCtrl.text.trim(),
                                 'city': cityCtrl.text.trim(),
                               };
+                              final fullAddr = '${addressCtrl.text.trim()}, ${cityCtrl.text.trim()}';
+                              final coords = await LocationService.geocodeAddress(fullAddr);
+                              if (coords != null) {
+                                payload['latitude'] = coords['lat'];
+                                payload['longitude'] = coords['lon'];
+                              }
                               final res = await AuthService.updateProfile(payload);
                               if (res['success'] == true) {
                                 final updatedUser = Map<String, dynamic>.from(_user ?? {})..addAll(payload);

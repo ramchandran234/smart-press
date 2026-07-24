@@ -23,6 +23,7 @@ class _OwnerRegisterScreenState extends State<OwnerRegisterScreen> {
   final _nameController = TextEditingController();
   final _shopNameController = TextEditingController();
   final _mobileController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _addressController = TextEditingController();
@@ -68,6 +69,7 @@ class _OwnerRegisterScreenState extends State<OwnerRegisterScreen> {
     _nameController.dispose();
     _shopNameController.dispose();
     _mobileController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -83,81 +85,26 @@ class _OwnerRegisterScreenState extends State<OwnerRegisterScreen> {
     );
   }
 
-  void _showRecoveryDialog(String recoveryPin) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: AppColors.darkSurface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: AppColors.cardBorder),
-          ),
-          title: const Row(
-            children: [
-              Icon(Icons.vpn_key, color: AppColors.accent),
-              SizedBox(width: 10),
-              Text('Save Your Recovery PIN', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.white)),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Please save this 6-digit PIN securely. You will need it to reset your password if you ever forget it.',
-                style: TextStyle(fontSize: 14, color: AppColors.textSub),
-              ),
-              const SizedBox(height: 20),
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: AppColors.gold.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.gold),
-                  ),
-                  child: SelectableText(
-                    recoveryPin,
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 4,
-                      color: AppColors.gold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                context.go('/otp?role=owner');
-              },
-              child: const Text('OK, Copied PIN', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.accent)),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  // Removed _showRecoveryDialog
 
   Future<void> _register() async {
     final name = _nameController.text.trim();
     final shopName = _shopNameController.text.trim();
     final mobile = _mobileController.text.trim();
+    final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     final confirmPassword = _confirmPasswordController.text.trim();
 
-    if (name.isEmpty || shopName.isEmpty || mobile.isEmpty || password.isEmpty) {
+    if (name.isEmpty || shopName.isEmpty || mobile.isEmpty || email.isEmpty || password.isEmpty) {
       _showSnack('Please fill all required fields', AppColors.red);
       return;
     }
     if (mobile.length < 10) {
       _showSnack('Enter a valid mobile number', AppColors.red);
+      return;
+    }
+    if (!email.contains('@')) {
+      _showSnack('Enter a valid email address', AppColors.red);
       return;
     }
     if (password.length < 6) {
@@ -180,6 +127,7 @@ class _OwnerRegisterScreenState extends State<OwnerRegisterScreen> {
       password: password,
       role: 'owner',
       extra: {
+        'email': email,
         'shopName': shopName,
         'addressLine1': _addressController.text.trim(),
         'area': _areaController.text.trim(),
@@ -195,9 +143,8 @@ class _OwnerRegisterScreenState extends State<OwnerRegisterScreen> {
     if (result['success'] == true) {
       await AuthService.logout();
       if (!mounted) return;
-      final user = result['user'] as Map<String, dynamic>?;
-      final recoveryPin = user?['recoveryPin'] as String? ?? '000000';
-      _showRecoveryDialog(recoveryPin);
+      _showSnack('Registration successful!', AppColors.green);
+      context.go('/otp?role=owner');
     } else {
       _showSnack(result['error'] ?? 'Registration failed', AppColors.red);
     }
@@ -257,6 +204,13 @@ class _OwnerRegisterScreenState extends State<OwnerRegisterScreen> {
                 hint: '+91 XXXXXXXXXX',
                 keyboardType: TextInputType.phone,
                 controller: _mobileController,
+              ),
+              const SizedBox(height: 16),
+              AppTextField(
+                label: 'Email Address',
+                hint: 'Enter your email',
+                keyboardType: TextInputType.emailAddress,
+                controller: _emailController,
               ),
               const SizedBox(height: 16),
               AppTextField(

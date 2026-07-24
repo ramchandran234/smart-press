@@ -71,22 +71,24 @@ class _NearbyVendorsScreenState
             AppColors.gold
           ][i % 5];
           
-          mapped.add({
-            '_id': rv['_id'],
-            'name': name,
-            'area': rv['area'] as String? ?? rv['address'] as String? ?? 'Koramangala',
-            'distance': '$distanceValue km',
-            'distanceValue': distanceValue,
-            'isOutOfDistance': isOutOfDistance,
-            'rating': 4.5 + (i % 5) * 0.1,
-            'reviews': 50 + (i * 12),
-            'open': open,
-            'services': ['Wash', 'Iron', 'Dry Clean'],
-            'minOrder': '₹100',
-            'time': '24 hrs',
-            'initial': initial,
-            'color': color,
-          });
+          if (!isOutOfDistance) {
+            mapped.add({
+              '_id': rv['_id'],
+              'name': name,
+              'area': rv['area'] as String? ?? rv['address'] as String? ?? 'Koramangala',
+              'distance': '$distanceValue km',
+              'distanceValue': distanceValue,
+              'isOutOfDistance': isOutOfDistance,
+              'rating': 4.5 + (i % 5) * 0.1,
+              'reviews': 50 + (i * 12),
+              'open': open,
+              'services': ['Wash', 'Iron', 'Dry Clean'],
+              'minOrder': '₹100',
+              'time': '24 hrs',
+              'initial': initial,
+              'color': color,
+            });
+          }
         }
         if (mounted) {
           setState(() {

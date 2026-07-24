@@ -12,10 +12,7 @@ class VendorPaymentScreen extends StatefulWidget {
       _VendorPaymentScreenState();
 }
 
-class _VendorPaymentScreenState
-    extends State<VendorPaymentScreen> {
-  String _mode = 'UPI';
-  final _modes = ['UPI', 'Cash', 'Card'];
+class _VendorPaymentScreenState extends State<VendorPaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
@@ -72,108 +69,23 @@ class _VendorPaymentScreenState
             ),
             const SizedBox(height: 24),
 
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text('Payment Mode',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15)),
+            const Spacer(),
+            const Icon(Icons.info_outline, size: 48, color: AppColors.textSub),
+            const SizedBox(height: 16),
+            const Text(
+              'Please complete the payment directly with the shop owner (Cash or Online). The owner will close the order once payment is received.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textSub, fontSize: 14, height: 1.5),
             ),
-            const SizedBox(height: 12),
+            const Spacer(),
 
-            Row(
-              children: _modes.map((m) {
-                final sel = _mode == m;
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () =>
-                        setState(() => _mode = m),
-                    child: AnimatedContainer(
-                      duration: const Duration(
-                          milliseconds: 180),
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 16),
-                      decoration: BoxDecoration(
-                        color: sel
-                            ? AppColors.orange
-                            : AppColors.white,
-                        borderRadius:
-                            BorderRadius.circular(12),
-                        border: Border.all(
-                            color: sel
-                                ? AppColors.orange
-                                : AppColors.cardBorder),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            m == 'UPI'
-                                ? Icons.qr_code
-                                : m == 'Cash'
-                                    ? Icons.money
-                                    : Icons.credit_card,
-                            color: sel
-                                ? AppColors.white
-                                : AppColors.textSub,
-                            size: 26,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(m,
-                              style: TextStyle(
-                                  fontWeight:
-                                      FontWeight.bold,
-                                  fontSize: 12,
-                                  color: sel
-                                      ? AppColors.white
-                                      : AppColors.textSub)),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
 
-            if (_mode == 'UPI') ...[
-              const SizedBox(height: 24),
-              Container(
-                width: 180,
-                height: 180,
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                      color: AppColors.cardBorder, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
-                        blurRadius: 10)
-                  ],
-                ),
-                child: const Center(
-                  child: Icon(Icons.qr_code,
-                      size: 130, color: AppColors.darkBg),
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text('Scan vendor QR to pay',
-                  style: TextStyle(
-                      color: AppColors.textSub,
-                      fontSize: 12)),
-            ],
 
             const Spacer(),
             AppButton(
-              label: 'Confirm Payment — ₹240',
-              color: AppColors.orange,
+              label: 'Return to Dashboard',
+              color: AppColors.accent,
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Payment successful!'),
-                    backgroundColor: AppColors.green,
-                  ),
-                );
                 context.go('/customer/dashboard');
               },
             ),

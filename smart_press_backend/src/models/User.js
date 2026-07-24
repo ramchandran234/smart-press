@@ -23,6 +23,7 @@ const userSchema = new mongoose.Schema({
     default: 'customer',
   },
   // Owner & Customer fields
+  email:        { type: String, trim: true, lowercase: true },
   shopName:     { type: String, trim: true },
   shopImage:    { type: String },
   addressLine1: { type: String, trim: true },

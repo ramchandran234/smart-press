@@ -3,35 +3,120 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/order_service.dart';
 import '../../../shared/widgets/app_button.dart';
 
 class CollectPaymentScreen extends StatefulWidget {
-  const CollectPaymentScreen({super.key});
+  final String orderId;
+  const CollectPaymentScreen({super.key, required this.orderId});
 
   @override
-  State<CollectPaymentScreen> createState() =>
-      _CollectPaymentScreenState();
+  State<CollectPaymentScreen> createState() => _CollectPaymentScreenState();
 }
 
-class _CollectPaymentScreenState
-    extends State<CollectPaymentScreen> {
-  String _mode = 'QR';
-  final _cashController = TextEditingController();
-  double _received = 0;
-  final double _total = 340;
-
-  double get _change =>
-      _received > _total ? _received - _total : 0;
+class _CollectPaymentScreenState extends State<CollectPaymentScreen> {
+  String _mode = 'Online';
+  bool _isLoading = true;
+  bool _isSubmitting = false;
+  Map<String, dynamic>? _order;
 
   @override
-  void dispose() {
-    _cashController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _loadOrder();
+  }
+
+  Future<void> _loadOrder() async {
+    try {
+      final res = await OrderService.getOrderById(widget.orderId);
+      if (res['success'] == true) {
+        setState(() {
+          _order = res['order'];
+          _isLoading = false;
+        });
+      } else {
+        setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _submitPayment() async {
+    if (_order == null) return;
+    
+    setState(() => _isSubmitting = true);
+    final total = (_order!['totalAmount'] as num?)?.toDouble() ?? 0.0;
+
+    try {
+      // 1. Record payment
+      final payRes = await OrderService.collectPayment(
+        widget.orderId,
+        amount: total,
+        paymentMode: _mode.toLowerCase(),
+      );
+
+      if (payRes['success'] != true) {
+        setState(() => _isSubmitting = false);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(payRes['error'] ?? 'Payment failed'),
+            backgroundColor: AppColors.red,
+          ),
+        );
+        return;
+      }
+
+      // 2. Close order by updating status to delivered
+      await OrderService.updateStatus(
+        widget.orderId,
+        'delivered',
+        note: 'Payment collected via $_mode',
+      );
+
+      setState(() => _isSubmitting = false);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Payment recorded and order closed!'),
+          backgroundColor: AppColors.green,
+        ),
+      );
+      context.pop();
+    } catch (e) {
+      setState(() => _isSubmitting = false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.red),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Collect Payment')),
+        body: const Center(child: CircularProgressIndicator(color: AppColors.accent)),
+      );
+    }
+
+    if (_order == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Collect Payment')),
+        body: const Center(child: Text('Order not found')),
+      );
+    }
+
+    final total = _order!['totalAmount'] as num? ?? 0;
+    final customer = _order!['customer'] as Map<String, dynamic>?;
+    final customerName = customer?['name'] as String? ?? 'Customer';
+    final orderIdDisplay = _order!['orderId'] ?? widget.orderId;
+
     return Scaffold(
+      backgroundColor: AppColors.bgLight,
       appBar: AppBar(title: const Text('Collect Payment')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -49,61 +134,49 @@ class _CollectPaymentScreenState
               ),
               child: Column(
                 children: [
-                  const Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.spaceBetween,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Order: ORD001',
-                          style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 13)),
-                      Text('Priya Sharma',
-                          style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 13)),
+                      Text('Order: $orderIdDisplay',
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 13)),
+                      Text(customerName,
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 13)),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  const Text('₹ 340',
-                      style: TextStyle(
+                  Text('₹ $total',
+                      style: const TextStyle(
                           color: AppColors.white,
                           fontSize: 42,
                           fontWeight: FontWeight.bold)),
                   const SizedBox(height: 4),
                   const Text('Amount Due',
                       style: TextStyle(
-                          color: Colors.white60,
-                          fontSize: 13)),
+                          color: Colors.white60, fontSize: 13)),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
             // Payment mode toggle
             const Text('Payment Mode',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15)),
-            const SizedBox(height: 10),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            const SizedBox(height: 12),
             Row(
-              children: ['QR', 'Cash'].map((m) {
+              children: ['Online', 'Offline'].map((m) {
                 final sel = _mode == m;
                 return Expanded(
                   child: GestureDetector(
-                    onTap: () =>
-                        setState(() => _mode = m),
+                    onTap: () => setState(() => _mode = m),
                     child: AnimatedContainer(
-                      duration:
-                          const Duration(milliseconds: 180),
+                      duration: const Duration(milliseconds: 180),
                       margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                       decoration: BoxDecoration(
-                        color: sel
-                            ? AppColors.accent
-                            : AppColors.white,
-                        borderRadius:
-                            BorderRadius.circular(12),
+                        color: sel ? AppColors.accent : AppColors.white,
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                             color: sel
                                 ? AppColors.accent
@@ -112,19 +185,13 @@ class _CollectPaymentScreenState
                       child: Column(
                         children: [
                           Icon(
-                            m == 'QR'
-                                ? Icons.qr_code
-                                : Icons.money,
-                            color: sel
-                                ? AppColors.white
-                                : AppColors.textSub,
+                            m == 'Online' ? Icons.phone_android : Icons.money,
+                            color: sel ? AppColors.white : AppColors.textSub,
                             size: 28,
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            m == 'QR'
-                                ? 'QR / UPI'
-                                : 'Cash',
+                            m,
                             style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: sel
@@ -138,156 +205,14 @@ class _CollectPaymentScreenState
                 );
               }).toList(),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 32),
 
-            // QR mode
-            if (_mode == 'QR') ...[
-              Center(
-                child: Column(
-                  children: [
-                    Container(
-                      width: 200,
-                      height: 200,
-                      decoration: BoxDecoration(
-                        color: AppColors.white,
-                        borderRadius:
-                            BorderRadius.circular(16),
-                        border: Border.all(
-                            color: AppColors.cardBorder,
-                            width: 2),
-                        boxShadow: [
-                          BoxShadow(
-                              color: Colors.black
-                                  .withOpacity(0.08),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4))
-                        ],
-                      ),
-                      child: const Center(
-                        child: Icon(Icons.qr_code,
-                            size: 140,
-                            color: AppColors.darkBg),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                        'Ask customer to scan this QR',
-                        style: TextStyle(
-                            color: AppColors.textSub,
-                            fontSize: 13)),
-                    const SizedBox(height: 6),
-                    TextButton.icon(
-                      onPressed: () =>
-                          context.push('/owner-qr'),
-                      icon: const Icon(Icons.fullscreen),
-                      label: const Text('Full Screen QR'),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-
-            // Cash mode
-            if (_mode == 'Cash') ...[
-              const Text('Cash Received (₹)',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14)),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _cashController,
-                keyboardType: TextInputType.number,
-                style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold),
-                decoration: const InputDecoration(
-                  prefixText: '₹  ',
-                  hintText: '0',
-                ),
-                onChanged: (v) => setState(
-                    () => _received = double.tryParse(v) ?? 0),
-              ),
-              const SizedBox(height: 16),
-              if (_received > 0) ...[
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: _change > 0
-                        ? AppColors.green.withOpacity(0.1)
-                        : AppColors.highlight,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: _change > 0
-                            ? AppColors.green
-                                .withOpacity(0.3)
-                            : AppColors.cardBorder),
+            _isSubmitting
+                ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
+                : AppButton(
+                    label: 'Record Payment & Close Order',
+                    onTap: _submitPayment,
                   ),
-                  child: Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
-                        children: [
-                          const Text('Amount Due',
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textSub)),
-                          Text('₹${_total.toInt()}',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18)),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                              _change > 0
-                                  ? 'Change to Return'
-                                  : 'Balance',
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textSub)),
-                          Text(
-                              _change > 0
-                                  ? '₹${_change.toInt()}'
-                                  : '₹${(_total - _received).toInt()}',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                  color: _change > 0
-                                      ? AppColors.green
-                                      : AppColors.red)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ],
-            const SizedBox(height: 24),
-
-            AppButton(
-              label: 'Record Payment & Print Receipt',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Payment recorded!'),
-                    backgroundColor: AppColors.green,
-                  ),
-                );
-                context.pop();
-              },
-            ),
-            const SizedBox(height: 10),
-            AppButton(
-              label: 'Share Receipt via WhatsApp',
-              onTap: () {},
-              color: AppColors.green,
-            ),
           ],
         ),
       ),

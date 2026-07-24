@@ -5,10 +5,21 @@ const axios         = require('axios'); // npm install axios
 const mongoose      = require('mongoose');
 const memoryDb      = require('../utils/memoryDb');
 const { normalizeMobile, hashPassword, comparePassword } = require('../utils/authUtils');
+const nodemailer    = require('nodemailer');
+
+// Setup Ethereal mock email transporter
+const transporter = nodemailer.createTransport({
+  host: 'smtp.ethereal.email',
+  port: 587,
+  auth: {
+    user: 'laundry.mock@ethereal.email', // Replace with real credentials in production
+    pass: 'dummy-password'
+  }
+});
 
 exports.register = async (req, res) => {
   try {
-    const { name, mobile, password, role, shopName, addressLine1, area, city, latitude, longitude, isOpen } = req.body;
+    const { name, mobile, email, password, role, shopName, addressLine1, area, city, latitude, longitude, isOpen } = req.body;
 
     if (!name || !mobile || !password) {
       return res.status(400).json({
@@ -32,7 +43,6 @@ exports.register = async (req, res) => {
       });
     }
 
-    const recoveryPin = Math.floor(100000 + Math.random() * 900000).toString();
     const hashedPassword = await hashPassword(password);
     let user;
 
@@ -48,6 +58,7 @@ exports.register = async (req, res) => {
       user = await User.create({
         name,
         mobile: cleanMobile,
+        email,
         password: hashedPassword,
         role: role || 'customer',
         isVerified: true,
@@ -59,7 +70,6 @@ exports.register = async (req, res) => {
         latitude: latitude != null ? Number(latitude) : undefined,
         longitude: longitude != null ? Number(longitude) : undefined,
         isOpen: isOpen != null ? Boolean(isOpen) : true,
-        recoveryPin,
       });
     } catch (dbErr) {
       console.warn('⚠️ MongoDB write unavailable, using memoryDb fallback:', dbErr.message);
@@ -74,6 +84,7 @@ exports.register = async (req, res) => {
       user = memoryDb.createUser({
         name,
         mobile: cleanMobile,
+        email,
         password: hashedPassword,
         role: role || 'customer',
         isVerified: true,
@@ -85,7 +96,6 @@ exports.register = async (req, res) => {
         latitude: latitude != null ? Number(latitude) : undefined,
         longitude: longitude != null ? Number(longitude) : undefined,
         isOpen: isOpen != null ? Boolean(isOpen) : true,
-        recoveryPin,
       });
     }
 
@@ -98,6 +108,7 @@ exports.register = async (req, res) => {
         id: user._id,
         name: user.name,
         mobile: user.mobile,
+        email: user.email,
         role: user.role,
         shopName: user.shopName,
         addressLine1: user.addressLine1,
@@ -108,7 +119,6 @@ exports.register = async (req, res) => {
         longitude: user.longitude,
         isOpen: user.isOpen != null ? user.isOpen : true,
         isVerified: user.isVerified,
-        recoveryPin: user.recoveryPin,
       },
     });
   } catch (err) {
@@ -182,6 +192,7 @@ exports.login = async (req, res) => {
         id: user._id,
         name: user.name,
         mobile: user.mobile,
+        email: user.email,
         role: user.role,
         shopName: user.shopName,
         addressLine1: user.addressLine1,
@@ -279,31 +290,31 @@ exports.sendOtp = async (req, res) => {
   }
 };
 
-// ── Send Password Reset OTP ─────────────────────────────
+// ── Send Password Reset OTP (Via Email) ─────────────────
 exports.sendResetOtp = async (req, res) => {
   try {
-    const { mobile, role } = req.body;
+    const { email } = req.body;
 
-    if (!mobile) {
+    if (!email) {
       return res.status(400).json({
         success: false,
-        error: 'Mobile number is required',
+        error: 'Email is required',
       });
     }
 
-    const cleanMobile = mobile.replace(/\D/g, '').replace(/^91/, '');
-    if (cleanMobile.length !== 10) {
-      return res.status(400).json({
-        success: false,
-        error: 'Enter a valid 10-digit mobile number',
-      });
+    const cleanEmail = email.trim().toLowerCase();
+    
+    let user;
+    if (mongoose.connection.readyState === 1) {
+      user = await User.findOne({ email: cleanEmail });
+    } else {
+      user = memoryDb.users.find(u => u.email === cleanEmail);
     }
-
-    const user = await User.findOne({ mobile: cleanMobile });
+    
     if (!user) {
       return res.status(404).json({
         success: false,
-        error: 'User not found with this mobile number',
+        error: 'User not found with this email address',
       });
     }
 
@@ -312,37 +323,29 @@ exports.sendResetOtp = async (req, res) => {
 
     user.otp = otp;
     user.otpExpiry = otpExpiry;
-    await user.save();
+    if (mongoose.connection.readyState === 1) {
+      await user.save();
+    }
 
-    const smsRes = await axios.post(
-      'https://www.fast2sms.com/dev/bulkV2',
-      {
-        message: `Your Smart Press password reset OTP is ${otp}. Valid for 10 minutes.`,
-        language: 'english',
-        route: 'q',
-        numbers: cleanMobile,
-      },
-      {
-        headers: {
-          authorization: process.env.FAST2SMS_API_KEY,
-          'Content-Type': 'application/json',
-        },
-        timeout: 10000,
-      }
-    );
-
-    console.log(`📱 Fast2SMS reset OTP response for ${cleanMobile}:`, smsRes.data);
-    if (!smsRes.data.return) {
-      console.error('Fast2SMS reset OTP error:', smsRes.data);
-      return res.status(500).json({
-        success: false,
-        error: 'SMS sending failed. Check FAST2SMS_API_KEY in Render env vars.',
+    // Send email using Nodemailer
+    try {
+      const info = await transporter.sendMail({
+        from: '"Smart Press" <no-reply@smartpress.com>',
+        to: cleanEmail,
+        subject: 'Password Reset OTP',
+        text: `Your Smart Press password reset OTP is ${otp}. Valid for 10 minutes.`,
+        html: `<b>Your Smart Press password reset OTP is:</b> <h2>${otp}</h2><p>Valid for 10 minutes.</p>`
       });
+      console.log(`✉️ Email sent to ${cleanEmail}:`, nodemailer.getTestMessageUrl(info) || info.messageId);
+    } catch (emailErr) {
+      console.error('Email sending failed:', emailErr.message);
+      // For development, we log the OTP if email fails
+      console.log(`🛠️ [DEV MODE] OTP for ${cleanEmail} is ${otp}`);
     }
 
     res.json({
       success: true,
-      message: `Password reset OTP sent to ${cleanMobile}`,
+      message: `Password reset OTP sent to ${cleanEmail}`,
     });
   } catch (err) {
     console.error('sendResetOtp error:', err.message);
@@ -353,16 +356,16 @@ exports.sendResetOtp = async (req, res) => {
 // ── Reset Password ──────────────────────────────────────
 exports.resetPassword = async (req, res) => {
   try {
-    const { mobile, otp, password } = req.body;
+    const { email, otp, password } = req.body;
 
-    if (!mobile || !otp || !password) {
+    if (!email || !otp || !password) {
       return res.status(400).json({
         success: false,
-        error: 'Mobile, OTP, and password are required',
+        error: 'Email, OTP, and password are required',
       });
     }
 
-    const cleanMobile = mobile.replace(/\D/g, '').replace(/^91/, '');
+    const cleanEmail = email.trim().toLowerCase();
     if (password.length < 6) {
       return res.status(400).json({
         success: false,
@@ -370,7 +373,13 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ mobile: cleanMobile });
+    let user;
+    if (mongoose.connection.readyState === 1) {
+      user = await User.findOne({ email: cleanEmail });
+    } else {
+      user = memoryDb.users.find(u => u.email === cleanEmail);
+    }
+    
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -395,7 +404,9 @@ exports.resetPassword = async (req, res) => {
     user.password = await hashPassword(password);
     user.otp = undefined;
     user.otpExpiry = undefined;
-    await user.save();
+    if (mongoose.connection.readyState === 1) {
+      await user.save();
+    }
 
     res.json({
       success: true,
@@ -491,7 +502,7 @@ exports.updateProfile = async (req, res) => {
   try {
     const allowed = [
       'name', 'shopName', 'address', 'addressLine1', 'area', 'city',
-      'upiId', 'gstin', 'fcmToken', 'latitude', 'longitude', 'isOpen',
+      'upiId', 'gstin', 'fcmToken', 'latitude', 'longitude', 'isOpen', 'email'
     ];
     const updateData = {};
     allowed.forEach((field) => {

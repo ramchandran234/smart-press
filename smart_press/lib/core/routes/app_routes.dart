@@ -230,8 +230,8 @@ final GoRouter appRouter = GoRouter(
 
     // ── PAYMENTS ──────────────────────────────────────
     GoRoute(
-      path: '/collect-payment',
-      pageBuilder: (c, s) => _buildPage(c, s, const CollectPaymentScreen()),
+      path: '/collect-payment/:id',
+      pageBuilder: (c, s) => _buildPage(c, s, CollectPaymentScreen(orderId: s.pathParameters['id']!)),
     ),
     GoRoute(
       path: '/owner-qr',

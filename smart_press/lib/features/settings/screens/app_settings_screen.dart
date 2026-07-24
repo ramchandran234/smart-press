@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/http_helper.dart';
+import '../../../core/services/location_service.dart';
 
 class AppSettingsScreen extends StatefulWidget {
   const AppSettingsScreen({super.key});
@@ -181,10 +182,15 @@ class _AppSettingsScreenState
                               final payload = {
                                 'shopName': shopNameCtrl.text.trim(),
                                 'name': shopNameCtrl.text.trim(),
-                                'mobile': mobileCtrl.text.trim(),
                                 'address': addressCtrl.text.trim(),
                                 'city': cityCtrl.text.trim(),
                               };
+                              final fullAddr = '${addressCtrl.text.trim()}, ${cityCtrl.text.trim()}';
+                              final coords = await LocationService.geocodeAddress(fullAddr);
+                              if (coords != null) {
+                                payload['latitude'] = coords['lat'];
+                                payload['longitude'] = coords['lon'];
+                              }
                               final res = await AuthService.updateProfile(payload);
                               setModalState(() => isSaving = false);
                               if (res['success'] == true) {

@@ -14,12 +14,13 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  final _mobileController = TextEditingController();
-  final _pinController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _otpController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
   bool _loading = false;
+  bool _otpSent = false;
 
   void _showSnack(String message, Color color) {
     if (!mounted) return;
@@ -35,18 +36,33 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       ));
   }
 
+  Future<void> _sendOtp() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      _showSnack('Enter a valid email address', AppColors.red);
+      return;
+    }
+
+    setState(() => _loading = true);
+    final result = await AuthService.sendPasswordResetOtp(email: email);
+    setState(() => _loading = false);
+
+    if (result['success'] == true) {
+      _showSnack('OTP sent to your email!', AppColors.green);
+      setState(() => _otpSent = true);
+    } else {
+      _showSnack(result['error'] ?? 'Failed to send OTP', AppColors.red);
+    }
+  }
+
   Future<void> _resetPassword() async {
-    final mobile = _mobileController.text.trim();
-    final pin = _pinController.text.trim();
+    final email = _emailController.text.trim();
+    final otp = _otpController.text.trim();
     final password = _passwordController.text.trim();
     final confirmPassword = _confirmPasswordController.text.trim();
 
-    if (mobile.isEmpty) {
-      _showSnack('Enter your mobile number', AppColors.red);
-      return;
-    }
-    if (pin.isEmpty || pin.length < 6) {
-      _showSnack('Enter your 6-digit Recovery PIN', AppColors.red);
+    if (otp.isEmpty) {
+      _showSnack('Enter the OTP received on your email', AppColors.red);
       return;
     }
     if (password.length < 6) {
@@ -59,10 +75,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
 
     setState(() => _loading = true);
-    final result = await AuthService.resetPasswordWithPin(
-      mobile: mobile,
-      recoveryPin: pin,
-      newPassword: password,
+    final result = await AuthService.resetPassword(
+      email: email,
+      otp: otp,
+      password: password,
     );
     setState(() => _loading = false);
 
@@ -70,7 +86,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       _showSnack('Password reset successful! Please login.', AppColors.green);
       await Future.delayed(const Duration(milliseconds: 1000));
       if (!mounted) return;
-      context.go('/otp?role=${widget.role}');
+      context.go('/login?role=${widget.role}');
     } else {
       _showSnack(result['error'] ?? 'Reset failed', AppColors.red);
     }
@@ -78,8 +94,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   void dispose() {
-    _mobileController.dispose();
-    _pinController.dispose();
+    _emailController.dispose();
+    _otpController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -112,47 +128,54 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     fontSize: 24,
                     fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            const Text(
-              'Enter your registered mobile number and the 6-digit Recovery PIN you received during registration.',
-              style: TextStyle(color: AppColors.textSub, fontSize: 14),
+            Text(
+              _otpSent 
+                ? 'Enter the OTP sent to your email and set a new password.'
+                : 'Enter your registered email address to receive an OTP.',
+              style: const TextStyle(color: AppColors.textSub, fontSize: 14),
             ),
             const SizedBox(height: 24),
+            
             AppTextField(
-              label: 'Mobile Number',
-              hint: '+91 XXXXXXXXXX',
-              controller: _mobileController,
-              keyboardType: TextInputType.phone,
+              label: 'Email Address',
+              hint: 'e.g. user@example.com',
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 18),
-            AppTextField(
-              label: 'Recovery PIN',
-              hint: 'Enter 6-digit PIN',
-              controller: _pinController,
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 18),
-            AppTextField(
-              label: 'New Password',
-              hint: 'Enter new password',
-              controller: _passwordController,
-              obscure: true,
-            ),
-            const SizedBox(height: 18),
-            AppTextField(
-              label: 'Confirm Password',
-              hint: 'Confirm new password',
-              controller: _confirmPasswordController,
-              obscure: true,
-            ),
-            const SizedBox(height: 28),
+            
+            if (_otpSent) ...[
+              AppTextField(
+                label: 'OTP',
+                hint: 'Enter 6-digit OTP',
+                controller: _otpController,
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 18),
+              AppTextField(
+                label: 'New Password',
+                hint: 'Enter new password',
+                controller: _passwordController,
+                obscure: true,
+              ),
+              const SizedBox(height: 18),
+              AppTextField(
+                label: 'Confirm Password',
+                hint: 'Confirm new password',
+                controller: _confirmPasswordController,
+                obscure: true,
+              ),
+              const SizedBox(height: 28),
+            ],
+
             _loading
                 ? Center(
                     child: CircularProgressIndicator(color: color),
                   )
                 : AppButton(
-                    label: 'Reset Password',
+                    label: _otpSent ? 'Reset Password' : 'Send OTP',
                     color: color,
-                    onTap: _resetPassword,
+                    onTap: _otpSent ? _resetPassword : _sendOtp,
                   ),
             const SizedBox(height: 14),
           ],
@@ -161,3 +184,4 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 }
+
